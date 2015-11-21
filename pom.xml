@@ -19,7 +19,7 @@
   <groupId>org.apache.slider</groupId>
   <artifactId>slider</artifactId>
   <name>Slider</name>
-  <version>0.61.0-incubating</version>
+  <version>0.61.0.2.2.9.0-3393</version>
   <packaging>pom</packaging>
 
   <description>
@@ -136,10 +136,10 @@
     <!--
     core artifacts
     -->
-    <hadoop.version>2.6.0</hadoop.version>
+    <hadoop.version>2.6.0.2.2.9.0-3393</hadoop.version>
 
-    <hbase.version>0.98.4-hadoop2</hbase.version>
-    <accumulo.version>1.6.1</accumulo.version>
+    <hbase.version>0.98.4.2.2.9.0-3393-hadoop2</hbase.version>
+    <accumulo.version>1.6.1.2.2.9.0-3393</accumulo.version>
     <!--
      artifact versions
     -->
@@ -181,7 +181,7 @@
     <slf4j.version>1.7.5</slf4j.version>
     <storm.version>0.9.3</storm.version>
     <stringtemplate.version>2.4.1</stringtemplate.version>
-    <zookeeper.version>3.4.6</zookeeper.version>
+    <zookeeper.version>3.4.6.2.2.9.0-3393</zookeeper.version>
 
 
     <!-- artifacts used in plugins -->
@@ -1575,7 +1575,7 @@
       <!-- 2.6 snapshots -->
       <id>branch-2.6</id>
       <properties>
-        <hadoop.version>2.6.0-SNAPSHOT</hadoop.version>
+        <hadoop.version>2.6.0.2.2.9.0-3393</hadoop.version>
       </properties>
     </profile>
 
@@ -1583,7 +1583,7 @@
       <!-- 2.6 snapshots -->
       <id>release-2.6</id>
       <properties>
-        <hadoop.version>2.6.0</hadoop.version>
+        <hadoop.version>2.6.0.2.2.9.0-3393</hadoop.version>
       </properties>
     </profile>
 
@@ -1591,7 +1591,7 @@
       <!-- hadoop branch-2 builds  -->
       <id>branch-2</id>
       <properties>
-        <hadoop.version>2.7.0-SNAPSHOT</hadoop.version>
+        <hadoop.version>2.6.0.2.2.9.0-3393</hadoop.version>
       </properties>
     </profile>
     
@@ -1599,7 +1599,7 @@
       <!-- hadoop trunk builds  -->
       <id>trunk</id>
       <properties>
-        <hadoop.version>3.0.0-SNAPSHOT</hadoop.version>
+        <hadoop.version>2.6.0.2.2.9.0-3393</hadoop.version>
       </properties>
     </profile>
     
