@@ -1,4 +1,4 @@
-  <!--
+<!--
    Licensed to the Apache Software Foundation (ASF) under one or more
    contributor license agreements.  See the NOTICE file distributed with
    this work for additional information regarding copyright ownership.
@@ -14,12 +14,12 @@
    See the License for the specific language governing permissions and
    limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>org.apache.slider</groupId>
   <artifactId>slider</artifactId>
   <name>Slider</name>
-  <version>0.81.0-incubating-SNAPSHOT</version>
+  <version>0.80.0.2.3.99.0-195</version>
   <packaging>pom</packaging>
 
   <description>
@@ -132,10 +132,10 @@
     <!--
     core artifacts
     -->
-    <hadoop.version>2.6.0</hadoop.version>
+    <hadoop.version>2.7.1.2.3.99.0-195</hadoop.version>
 
-    <hbase.version>0.99.0</hbase.version>
-    <accumulo.version>1.7.0</accumulo.version>
+    <hbase.version>1.1.2.2.3.99.0-195</hbase.version>
+    <accumulo.version>1.7.0.2.3.99.0-195</accumulo.version>
     <!--
      artifact versions
     -->
@@ -179,7 +179,7 @@
     <slf4j.version>1.7.5</slf4j.version>
     <storm.version>0.9.3</storm.version>
     <stringtemplate.version>2.4.1</stringtemplate.version>
-    <zookeeper.version>3.4.6</zookeeper.version>
+    <zookeeper.version>3.4.6.2.3.99.0-195</zookeeper.version>
 
 
     <!-- artifacts used in plugins -->
@@ -1356,7 +1356,7 @@
         <artifactId>jetty</artifactId>
         <version>${jetty-hwx.version}</version>
         <exclusions>
-          <!-- cut the jetty version of the servlet API —Hadoop ships with one-->
+          <!-- cut the jetty version of the servlet API &#8212;Hadoop ships with one-->
           <exclusion>
             <groupId>org.mortbay.jetty</groupId>
             <artifactId>servlet-api</artifactId>
@@ -1625,7 +1625,7 @@
       <!-- 2.6 snapshots -->
       <id>branch-2.6</id>
       <properties>
-        <hadoop.version>2.6.0-SNAPSHOT</hadoop.version>
+        <hadoop.version>2.7.1.2.3.99.0-195</hadoop.version>
       </properties>
     </profile>
 
@@ -1633,7 +1633,7 @@
       <!-- 2.6 -->
       <id>release-2.6</id>
       <properties>
-        <hadoop.version>2.6.0</hadoop.version>
+        <hadoop.version>2.7.1.2.3.99.0-195</hadoop.version>
       </properties>
     </profile>
 
@@ -1641,7 +1641,7 @@
       <!-- 2.7.0 -->
       <id>release-2.7</id>
       <properties>
-        <hadoop.version>2.7.0</hadoop.version>
+        <hadoop.version>2.7.1.2.3.99.0-195</hadoop.version>
       </properties>
     </profile>
 
@@ -1649,7 +1649,7 @@
       <!-- hadoop branch-2.7 builds  -->
       <id>branch-2.7</id>
       <properties>
-        <hadoop.version>2.7.1-SNAPSHOT</hadoop.version>
+        <hadoop.version>2.7.1.2.3.99.0-195</hadoop.version>
       </properties>
     </profile>
 
@@ -1657,7 +1657,7 @@
       <!-- hadoop branch-2 builds  -->
       <id>branch-2</id>
       <properties>
-        <hadoop.version>2.8.0-SNAPSHOT</hadoop.version>
+        <hadoop.version>2.7.1.2.3.99.0-195</hadoop.version>
       </properties>
     </profile>
     
@@ -1665,7 +1665,7 @@
       <!-- hadoop trunk builds  -->
       <id>trunk</id>
       <properties>
-        <hadoop.version>3.0.0-SNAPSHOT</hadoop.version>
+        <hadoop.version>2.7.1.2.3.99.0-195</hadoop.version>
       </properties>
     </profile>
 
