@@ -552,6 +552,22 @@
       </build>
     </profile>
 
+    <profile>
+      <id>hwx-common</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <dependencies>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-aws</artifactId>
+        </dependency>
+        <dependency>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-azure</artifactId>
+        </dependency>
+      </dependencies>
+    </profile>
 
     <profile>
       <id>rat</id>
