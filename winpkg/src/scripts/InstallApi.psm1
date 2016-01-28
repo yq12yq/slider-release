@@ -109,7 +109,7 @@ function Install(
         {
             $shellApplication = new-object -com shell.application
             $zipPackage = $shellApplication.NameSpace("$HDP_RESOURCES_DIR\$FinalName.zip")
-            $destinationFolder = $shellApplication.NameSpace($sliderInstallPath)
+            $destinationFolder = $shellApplication.NameSpace($sliderIntallPathParent)
             $destinationFolder.CopyHere($zipPackage.Items(), 20)
         }
 
@@ -326,8 +326,11 @@ function Configure(
 
         Write-Log "Updating slider config file $sliderClientSiteXmlFile"
 
-        UpdateXmlConfig  $sliderClientSiteXmlFile @{
-        "slider.zookeeper.quorum" = "$ENV:ZOOKEEPER_HOSTS";
+        if(Test-Path ENV:ZOOKEEPER_HOSTS)
+        {
+            UpdateXmlConfig  $sliderClientSiteXmlFile @{
+                "slider.zookeeper.quorum" = "$ENV:ZOOKEEPER_HOSTS";
+            }
         }
        
     }
