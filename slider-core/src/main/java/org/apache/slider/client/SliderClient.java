@@ -2063,7 +2063,7 @@ public class SliderClient extends AbstractSliderLaunchedService implements RunSe
     amLauncher.setEnv("LC_ALL", "en_US.UTF-8");
     amLauncher.setEnv("LANGUAGE", "en_US.UTF-8");
     amLauncher.putEnv(getAmLaunchEnv(config));
-    
+
     for (Map.Entry<String, String> envs : getSystemEnv().entrySet()) {
       log.debug("System env {}={}", envs.getKey(), envs.getValue());
     }

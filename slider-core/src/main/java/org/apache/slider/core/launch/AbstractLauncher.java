@@ -75,7 +75,7 @@ public abstract class AbstractLauncher extends Configured {
   protected final Map<String, LocalResource> localResources = new HashMap<>();
   private final Map<String, ByteBuffer> serviceData = new HashMap<>();
   // security
-  protected final Credentials credentials = new Credentials();
+  protected Credentials credentials = new Credentials();
   protected LogAggregationContext logAggregationContext;
 
 
