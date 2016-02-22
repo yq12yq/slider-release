@@ -970,7 +970,7 @@ public class SliderClient extends AbstractSliderLaunchedService implements RunSe
     return true;
   }
 
-  private static void checkForCredentials(Configuration conf,
+  protected static void checkForCredentials(Configuration conf,
       ConfTree tree) throws IOException {
     if (tree.credentials == null || tree.credentials.size()==0) {
       log.info("No credentials requested");
@@ -1938,7 +1938,7 @@ public class SliderClient extends AbstractSliderLaunchedService implements RunSe
    * @throws YarnException
    * @throws IOException
    */
-  private int startCluster(String clustername,
+  protected int startCluster(String clustername,
                            LaunchArgsAccessor launchArgs) throws
                                                           YarnException,
                                                           IOException {
@@ -1950,7 +1950,6 @@ public class SliderClient extends AbstractSliderLaunchedService implements RunSe
     LaunchedApplication launchedApplication =
       launchApplication(clustername, clusterDirectory, instanceDefinition,
                         serviceArgs.isDebug());
-    applicationId = launchedApplication.getApplicationId();
 
     if (launchArgs.getOutputFile() != null) {
       // output file has been requested. Get the app report and serialize it
@@ -2019,23 +2018,11 @@ public class SliderClient extends AbstractSliderLaunchedService implements RunSe
 
   }
 
-  /**
-   *
-   * @param clustername name of the cluster
-   * @param clusterDirectory cluster dir
-   * @param instanceDefinition the instance definition
-   * @param debugAM enable debug AM options
-   * @return the launched application
-   * @throws YarnException
-   * @throws IOException
-   */
-  public LaunchedApplication launchApplication(String clustername,
-                                               Path clusterDirectory,
-                                               AggregateConf instanceDefinition,
-                                               boolean debugAM)
-    throws YarnException, IOException {
-
-
+  protected AppMasterLauncher setupAppMasterLauncher(String clustername,
+      Path clusterDirectory,
+      AggregateConf instanceDefinition,
+      boolean debugAM)
+    throws YarnException, IOException{
     deployedClusterName = clustername;
     SliderUtils.validateClusterName(clustername);
     verifyNoLiveClusters(clustername, "Launch");
@@ -2352,6 +2339,32 @@ public class SliderClient extends AbstractSliderLaunchedService implements RunSe
     if (amQueue != null) {
       amLauncher.setQueue(amQueue);
     }
+    return amLauncher;
+  }
+
+  /**
+   *
+   * @param clustername name of the cluster
+   * @param clusterDirectory cluster dir
+   * @param instanceDefinition the instance definition
+   * @param debugAM enable debug AM options
+   * @return the launched application
+   * @throws YarnException
+   * @throws IOException
+   */
+  public LaunchedApplication launchApplication(String clustername,
+                                               Path clusterDirectory,
+                                               AggregateConf instanceDefinition,
+                                               boolean debugAM)
+    throws YarnException, IOException {
+
+    AppMasterLauncher amLauncher = setupAppMasterLauncher(clustername,
+        clusterDirectory,
+        instanceDefinition,
+        debugAM);
+
+    applicationId = amLauncher.getApplicationId();
+    log.info("Submitting application {}", applicationId);
 
     // submit the application
     LaunchedApplication launchedApplication = amLauncher.submitApplication();
