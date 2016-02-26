@@ -187,7 +187,6 @@ implements FuntestProperties, Arguments, SliderExitCodes, SliderActions {
     describe "Teardown app instance " + applicationName
     // forced freeze with wait
     SliderShell shell
-    shell = stop(applicationName)
     teardown(applicationName)
 
     shell = slider([
