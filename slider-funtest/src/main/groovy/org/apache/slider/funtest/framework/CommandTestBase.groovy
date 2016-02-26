@@ -900,9 +900,6 @@ abstract class CommandTestBase extends SliderTestUtils {
         ARG_MESSAGE, "suicide"
     ])
 
-    // app gets accepted
-    log.info "awaiting app to enter ACCEPTED state"
-    awaitYarnApplicationAccepted(appId)
     // app goes live
     log.info "awaiting app to enter RUNNING state"
     ensureYarnApplicationIsUp(appId)
