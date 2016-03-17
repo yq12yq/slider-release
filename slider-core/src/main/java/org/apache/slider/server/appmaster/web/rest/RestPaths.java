@@ -35,8 +35,10 @@ public class RestPaths {
    * agent content root: {@value}
    */
   public static final String WS_AGENT_CONTEXT_ROOT = "/" + AGENT_WS_CONTEXT;
-  public static final String SLIDER_CONTEXT_ROOT = WS_CONTEXT_ROOT +"/v1/slider";
-  public static final String SLIDER_AGENT_CONTEXT_ROOT = WS_AGENT_CONTEXT_ROOT +"/v1/slider";
+  public static final String V1_SLIDER = "/v1/slider";
+  public static final String SLIDER_CONTEXT_ROOT = WS_CONTEXT_ROOT + V1_SLIDER;
+  public static final String RELATIVE_API = WS_CONTEXT + V1_SLIDER;
+  public static final String SLIDER_AGENT_CONTEXT_ROOT = WS_AGENT_CONTEXT_ROOT + V1_SLIDER;
   public static final String MANAGEMENT = "mgmt";
   public static final String SLIDER_SUBPATH_MANAGEMENT = "/" + MANAGEMENT;
   public static final String SLIDER_SUBPATH_AGENTS = "/agents";
@@ -47,6 +49,9 @@ public class RestPaths {
    * management path: {@value}
    */
   public static final String SLIDER_PATH_MANAGEMENT = SLIDER_CONTEXT_ROOT
+                                      + SLIDER_SUBPATH_MANAGEMENT;
+
+  public static final String RELATIVE_PATH_MANAGEMENT = RELATIVE_API
                                       + SLIDER_SUBPATH_MANAGEMENT;
 
   /**
@@ -61,6 +66,9 @@ public class RestPaths {
   public static final String SLIDER_PATH_PUBLISHER = SLIDER_CONTEXT_ROOT
                                       + SLIDER_SUBPATH_PUBLISHER;
 
+  public static final String RELATIVE_PATH_PUBLISHER = RELATIVE_API
+                                      + SLIDER_SUBPATH_PUBLISHER;
+
   /**
    * Registry subpath: {@value} 
    */
@@ -70,6 +78,8 @@ public class RestPaths {
    * Registry: {@value}
    */
   public static final String SLIDER_PATH_REGISTRY = SLIDER_CONTEXT_ROOT
+                                                    + SLIDER_SUBPATH_REGISTRY;
+  public static final String RELATIVE_PATH_REGISTRY = RELATIVE_API
                                                     + SLIDER_SUBPATH_REGISTRY;
 
 
@@ -116,7 +126,6 @@ public class RestPaths {
    */
   public static final String SYSTEM_THREADS = SYSTEM + "/threads";
 
-
   /**
    * application subpath
    */
@@ -134,7 +143,7 @@ public class RestPaths {
   public static final String LIVE_RESOURCES = "/live/resources";
   public static final String LIVE_CONTAINERS = "/live/containers";
   public static final String LIVE_COMPONENTS = "/live/components";
-  public static final String LIVE_NODES = "/live/";
+  public static final String LIVE_NODES = "/live/nodes";
   public static final String LIVE_LIVENESS = "/live/liveness";
   public static final String LIVE_STATISTICS = "/live/statistics";
   public static final String MODEL = "/model";
@@ -149,4 +158,15 @@ public class RestPaths {
   public static final String ACTION = "/action";
   public static final String ACTION_PING = ACTION + "/ping";
   public static final String ACTION_STOP = ACTION + "/stop";
+
+  /**
+   * Path to a role
+   * @param name role name
+   * @return a path to it
+   */
+  public String pathToRole(String name) {
+
+    // ws/v1/slider/application/live/components/$name
+    return SLIDER_PATH_APPLICATION + LIVE_COMPONENTS + "/" + name;
+  }
 }

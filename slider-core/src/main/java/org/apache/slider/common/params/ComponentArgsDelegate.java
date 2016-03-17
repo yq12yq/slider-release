@@ -32,9 +32,9 @@ public class ComponentArgsDelegate extends AbstractArgsDelegate {
    */
   @Parameter(names = {ARG_COMPONENT,  ARG_COMPONENT_SHORT, ARG_ROLE},
              arity = 2,
-             description = "--component <name> <count>",
+             description = "--component <name> <count> e.g. +1 incr by 1, -2 decr by 2, and 3 makes final count 3",
              splitter = DontSplitArguments.class)
-  public List<String> componentTuples = new ArrayList<String>(0);
+  public List<String> componentTuples = new ArrayList<>(0);
 
 
   /**

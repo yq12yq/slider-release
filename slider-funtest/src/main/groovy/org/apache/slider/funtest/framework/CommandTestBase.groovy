@@ -23,22 +23,24 @@ import org.apache.commons.lang.StringUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem as HadoopFS
 import org.apache.hadoop.fs.Path
-import org.apache.hadoop.hdfs.HdfsConfiguration
 import org.apache.hadoop.registry.client.api.RegistryConstants
 import org.apache.hadoop.util.ExitUtil
 import org.apache.hadoop.util.Shell
 import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.hadoop.yarn.conf.YarnConfiguration
 import org.apache.slider.api.StatusKeys
-import org.apache.slider.common.tools.ConfigHelper
-import org.apache.slider.core.launch.SerializedApplicationReport
-import org.apache.slider.core.main.ServiceLauncher
+import org.apache.slider.api.types.NodeInformationList
+import org.apache.slider.client.SliderClient
+import org.apache.slider.common.Constants
 import org.apache.slider.common.SliderKeys
 import org.apache.slider.common.SliderXmlConfKeys
 import org.apache.slider.api.ClusterDescription
+import org.apache.slider.common.tools.ConfigHelper
 import org.apache.slider.common.tools.SliderUtils
-import org.apache.slider.client.SliderClient
+import org.apache.slider.core.launch.SerializedApplicationReport
+import org.apache.slider.core.main.ServiceLauncher
 import org.apache.slider.core.persist.ApplicationReportSerDeser
+import org.apache.slider.core.persist.JsonSerDeser
 import org.apache.slider.test.SliderTestUtils
 import org.apache.slider.test.Outcome;
 
@@ -89,7 +91,6 @@ abstract class CommandTestBase extends SliderTestUtils {
    * Keytab for secure cluster
    */
   public static final String TEST_AM_KEYTAB
-  static File keytabFile
 
   /**
    * shell-escaped ~ symbol. On windows this does
@@ -101,12 +102,12 @@ abstract class CommandTestBase extends SliderTestUtils {
   public static final int REGISTRY_STARTUP_TIMEOUT = 90000
   public static final String E_LAUNCH_FAIL = 'Application did not start'
 
+  public static final WINDOWS_CLUSTER
   /*
   Static initializer for test configurations. If this code throws exceptions
   (which it may) the class will not be instantiable.
    */
   static {
-    new HdfsConfiguration()
     ConfigHelper.injectSliderXMLResource()
     ConfigHelper.registerDeprecatedConfigItems();
     SLIDER_CONFIG = ConfLoader.loadSliderConf(SLIDER_CONF_XML, true);
@@ -127,7 +128,8 @@ abstract class CommandTestBase extends SliderTestUtils {
     TEST_AM_KEYTAB = SLIDER_CONFIG.getTrimmed(
         KEY_TEST_AM_KEYTAB)
 
-    TILDE = Shell.WINDOWS? "~" : "\\~" 
+    TILDE = Shell.WINDOWS? "~" : "\\~"
+    WINDOWS_CLUSTER = SLIDER_CONFIG.getBoolean(KEY_TEST_WINDOWS_CLUSTER, Shell.WINDOWS)
   }
 
   @Rule
@@ -209,7 +211,7 @@ abstract class CommandTestBase extends SliderTestUtils {
       return false;
     }
   }
-  
+
   /**
    * Add a jar to the slider classpath by looking up a class and determining
    * its containing JAR
@@ -236,6 +238,16 @@ abstract class CommandTestBase extends SliderTestUtils {
       throw new RuntimeException("Undefined property $key")
     }
     return property
+  }
+
+  /**
+   * used enough in setting properties it's worth pulling out
+   * @param key sysprop/conf definition
+   * @param val value
+   * @return the concatenated string
+   */
+  static String define(String key, String val) {
+    key + "=" + val
   }
 
   /**
@@ -291,13 +303,13 @@ abstract class CommandTestBase extends SliderTestUtils {
 
   static SliderShell destroy(String name) {
     slider([
-        ACTION_DESTROY, name
+        ACTION_DESTROY, name, ARG_FORCE
     ])
   }
 
   static SliderShell destroy(int result, String name) {
     slider(result, [
-        ACTION_DESTROY, name
+        ACTION_DESTROY, name, ARG_FORCE
     ])
   }
 
@@ -327,7 +339,6 @@ abstract class CommandTestBase extends SliderTestUtils {
         ACTION_FREEZE, name
     ])
   }
-
 
   static SliderShell freeze(
       int exitCode,
@@ -362,9 +373,9 @@ abstract class CommandTestBase extends SliderTestUtils {
   static SliderShell killContainer(String name, String containerID) {
     slider(0,
         [
-            ACTION_KILL_CONTAINER,
-            name,
-            containerID
+          ACTION_KILL_CONTAINER,
+          name,
+          containerID
         ])
   }
 
@@ -443,9 +454,7 @@ abstract class CommandTestBase extends SliderTestUtils {
   }
 
   static SliderShell registry(Collection<String> commands) {
-    slider(0,
-        [ACTION_REGISTRY] + commands
-    )
+    slider(0, [ACTION_REGISTRY] + commands)
   }
 
   /**
@@ -575,7 +584,7 @@ abstract class CommandTestBase extends SliderTestUtils {
     List<String> argsList = [action, clustername]
 
     argsList << ARG_ZKHOSTS <<
-    SLIDER_CONFIG.getTrimmed(RegistryConstants.KEY_REGISTRY_ZK_QUORUM)
+      SLIDER_CONFIG.getTrimmed(RegistryConstants.KEY_REGISTRY_ZK_QUORUM)
 
 
     if (blockUntilRunning) {
@@ -752,6 +761,9 @@ abstract class CommandTestBase extends SliderTestUtils {
     maybeAddCommandOption(commands,
         [ARG_COMP_OPT, SliderKeys.COMPONENT_AM, SliderXmlConfKeys.KEY_KEYTAB_PRINCIPAL],
         SLIDER_CONFIG.getTrimmed(SliderXmlConfKeys.KEY_KEYTAB_PRINCIPAL));
+
+    commands << ARG_COMP_OPT << SliderKeys.COMPONENT_AM <<
+        "env." + Constants.HADOOP_JAAS_DEBUG << "true";
     commands.addAll(extraArgs)
     SliderShell shell = new SliderShell(commands)
     if (0 != shell.execute()) {
@@ -777,24 +789,6 @@ abstract class CommandTestBase extends SliderTestUtils {
   }
 
   /**
-   * Create a temp JSON file. After coming up with the name, the file
-   * is deleted
-   * @return the filename
-   */
-  public static  File createTempJsonFile() {
-    return tmpFile(".json")
-  }
-
-  public static File tmpFile(String suffix) {
-    File reportFile = File.createTempFile(
-        "launch",
-        suffix,
-        new File("target"))
-    reportFile.delete()
-    return reportFile
-  }
-
-  /**
    * If the option is not null/empty, add the command and the option
    * @param args arg list being built up
    * @param command command to add option
@@ -815,20 +809,20 @@ abstract class CommandTestBase extends SliderTestUtils {
       ApplicationReportSerDeser serDeser = new ApplicationReportSerDeser()
       def report = serDeser.fromFile(reportFile)
       return report
-    }    
+    }
     return null;
-  }  
-   
+  }
+
   public static SerializedApplicationReport loadAppReport(File reportFile) {
-    if (reportFile.exists() && reportFile.length()> 0) {
+    if (reportFile.exists() && reportFile.length() > 0) {
       ApplicationReportSerDeser serDeser = new ApplicationReportSerDeser()
       def report = serDeser.fromFile(reportFile)
       return report
-    }  else {
+    }else {
       throw new FileNotFoundException(reportFile.absolutePath)
-    }  
-  }  
-  
+    }
+  }
+
   public static SerializedApplicationReport maybeLookupFromLaunchReport(File launchReport) {
     def report = maybeLoadAppReport(launchReport)
     if (report) {
@@ -859,7 +853,50 @@ abstract class CommandTestBase extends SliderTestUtils {
     }
   }
 
-  
+  /**
+   * Lookup an application, return null if loading failed
+   * @param id application ID
+   * @return an application report or null
+   */
+  public static NodeInformationList listNodes(String name = "", boolean healthy = false, String label = "") {
+    File reportFile = createTempJsonFile();
+    try {
+      def shell = nodes(name, reportFile, healthy, label)
+      if (log.isDebugEnabled()) {
+        shell.dumpOutput()
+      }
+      JsonSerDeser<NodeInformationList> serDeser = NodeInformationList.createSerializer();
+      serDeser.fromFile(reportFile)
+    } finally {
+      reportFile.delete()
+    }
+  }
+
+  /**
+   * List cluster nodes
+   * @param name of cluster or null
+   * @param out output file (or null)
+   * @param healthy list healthy nodes only
+   * @param label label to filter on
+   * @return output
+   */
+  static SliderShell nodes(String name, File out = null, boolean healthy = false, String label = "") {
+    def commands = [ACTION_NODES]
+    if (label) {
+      commands += [ ARG_LABEL, label]
+    }
+    if (name) {
+      commands << name
+    }
+    if (out) {
+      commands += [ARG_OUTPUT, out.absolutePath]
+    }
+    if (healthy) {
+      commands << ARG_HEALTHY
+    }
+    slider(0, commands)
+  }
+
   public Path buildClusterPath(String clustername) {
     return new Path(
         clusterFS.homeDirectory,
@@ -900,9 +937,6 @@ abstract class CommandTestBase extends SliderTestUtils {
         ARG_MESSAGE, "suicide"
     ])
 
-    // app gets accepted
-    log.info "awaiting app to enter ACCEPTED state"
-    awaitYarnApplicationAccepted(appId)
     // app goes live
     log.info "awaiting app to enter RUNNING state"
     ensureYarnApplicationIsUp(appId)
@@ -933,11 +967,7 @@ abstract class CommandTestBase extends SliderTestUtils {
       }
 
       // trigger a failure on registry lookup
-      SliderShell shell = registry(0, [
-              ARG_NAME,
-              application,
-              ARG_LISTEXP
-          ])
+      registry(0, [ARG_NAME, application, ARG_LISTEXP])
     }
   }
 
@@ -1208,7 +1238,6 @@ abstract class CommandTestBase extends SliderTestUtils {
   }
 
   public ClusterDescription execStatus(String application) {
-    ClusterDescription cd
     File statusFile = File.createTempFile("status", ".json")
     try {
       slider(EXIT_SUCCESS,
@@ -1282,6 +1311,13 @@ abstract class CommandTestBase extends SliderTestUtils {
     }
   }
 
+  /**
+   * Assert that exactly the number of containers are live
+   * @param clustername name of cluster
+   * @param component component to probe
+   * @param count count
+   * @return
+   */
   public ClusterDescription assertContainersLive(String clustername,
       String component,
       int count) {
@@ -1304,8 +1340,7 @@ abstract class CommandTestBase extends SliderTestUtils {
     int expectedCount = args['live'].toInteger();
     ClusterDescription cd = execStatus(application)
     def actual = extractLiveContainerCount(cd, component)
-    log.debug(
-        "live $component count = $actual; expected=$expectedCount")
+    log.debug("live $component count = $actual; expected=$expectedCount")
     return Outcome.fromBool(actual >= expectedCount)
   }
 
@@ -1428,8 +1463,8 @@ abstract class CommandTestBase extends SliderTestUtils {
   }
  
   /**
-   * Is the registry accessible for an application?
-   * @param args argument map containing <code>"application"</code>
+   * probe for the output {@code  command: List} containing {@code text}
+   * @param args argument map containing the required parameters
    * @return probe outcome
    */
   protected Outcome commandOutputContains(Map args) {
@@ -1438,9 +1473,10 @@ abstract class CommandTestBase extends SliderTestUtils {
     SliderShell shell = slider(0, command)
     return Outcome.fromBool(shell.outputContains(text))
   }
+
   /**
-   * Is the registry accessible for an application?
-   * @param args argument map containing <code>"application"</code>
+   * probe for a command {@code command: List} succeeeding
+   * @param args argument map containing the required parameters
    * @return probe outcome
    */
   protected Outcome commandSucceeds(Map args) {
@@ -1448,9 +1484,11 @@ abstract class CommandTestBase extends SliderTestUtils {
     SliderShell shell = slider(command)
     return Outcome.fromBool(shell.ret == 0)
   }
+
   /**
-   * Is the registry accessible for an application?
-   * @param args argument map
+   * probe for a command {@code command: List} generating a file 'filename'
+   * which must contain the text 'text'
+   * @param args argument map containing the required parameters
    * @return probe outcome
    */
   protected Outcome generatedFileContains(Map args) {
@@ -1459,7 +1497,10 @@ abstract class CommandTestBase extends SliderTestUtils {
     String filename = args['filename'];
     File f = new File(filename)
     f.delete()
-    SliderShell shell = slider(0, command)
+    SliderShell shell = slider(command)
+    if (shell.ret != 0) {
+      return Outcome.Retry
+    }
     shell.dumpOutput()
     assert f.exists()
     return Outcome.fromBool(f.text.contains(text))
@@ -1560,4 +1601,7 @@ abstract class CommandTestBase extends SliderTestUtils {
     }
   }
 
+  void assumeTestClusterNotWindows() {
+    assume(!WINDOWS_CLUSTER, "Test cluster is windows")
+  }
 }

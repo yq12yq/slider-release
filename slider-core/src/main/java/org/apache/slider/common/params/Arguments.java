@@ -41,13 +41,16 @@ public interface Arguments {
   String ARG_COMP_OPT= "--compopt";
   String ARG_COMP_OPT_SHORT = "--co";
   String ARG_CONFIG = "--config";
+  String ARG_CONTAINERS = "--containers";
   String ARG_CREDENTIALS = "--credentials";
   String ARG_DEBUG = "--debug";
   String ARG_DEFINE = "-D";
+  String ARG_DELETE = "--delete";
   String ARG_DEST = "--dest";
   String ARG_DESTDIR = "--destdir";
   String ARG_DESTFILE = "--destfile";
   String ARG_EXITCODE = "--exitcode";
+  String ARG_FAIL = "--fail";
   /**
    filesystem-uri: {@value}
    */
@@ -60,23 +63,26 @@ public interface Arguments {
   String ARG_GETCONF = "--getconf";
   String ARG_GETEXP = "--getexp";
   String ARG_GETFILES = "--getfiles";
+  String ARG_HEALTHY= "--healthy";
   String ARG_HELP = "--help";
   String ARG_HOSTNAME = "--hostname";
   String ARG_ID = "--id";
   String ARG_IMAGE = "--image";
+  String ARG_INSTALL = "--install";
   String ARG_INTERNAL = "--internal";
+  String ARG_KEYLEN = "--keylen";
   String ARG_KEYTAB = "--keytab";
   String ARG_KEYSTORE = "--keystore";
-  String ARG_KEYTABINSTALL = "--install";
-  String ARG_KEYTABDELETE = "--delete";
+  String ARG_KEYTABINSTALL = ARG_INSTALL;
+  String ARG_KEYTABDELETE = ARG_DELETE;
   String ARG_KEYTABLIST = "--list";
+  String ARG_LABEL = "--label";
   String ARG_LEVEL = "--level";
   String ARG_LIST = "--list";
   String ARG_LISTCONF = "--listconf";
   String ARG_LISTEXP = "--listexp";
   String ARG_LISTFILES = "--listfiles";
   String ARG_LIVE = "--live";
-  String ARG_CONTAINERS = "--containers";
   String ARG_MANAGER = "--manager";
   String ARG_MANAGER_SHORT = "--m";
   String ARG_MESSAGE = "--message";
@@ -90,10 +96,10 @@ public interface Arguments {
   String ARG_PACKAGE = "--package";
   String ARG_PASSWORD = "--password";
   String ARG_PATH = "--path";
-  String ARG_PKGDELETE = "--delete";
-  String ARG_INSTALL = "--install";
+  String ARG_PKGDELETE = ARG_DELETE;
   String ARG_PKGINSTANCES = "--instances";
-  String ARG_PKGLIST = "--list";
+  String ARG_PKGLIST = ARG_LIST;
+  String ARG_PRINCIPAL = "--principal";
   String ARG_PROVIDER = "--provider";
   String ARG_QUEUE = "--queue";
   String ARG_REPLACE_PKG = "--replacepkg";
@@ -103,8 +109,11 @@ public interface Arguments {
   String ARG_RESOURCE_MANAGER = "--rm";
   String ARG_RESOURCE_OPT = "--resopt";
   String ARG_RESOURCE_OPT_SHORT = "-ro";
+  String ARG_SECURE = "--secure";
   String ARG_SERVICETYPE = "--servicetype";
+  String ARG_SERVICES = "--services";
   String ARG_SLIDER = "--slider";
+  String ARG_SOURCE = "--source";
   String ARG_STATE = "--state";
   String ARG_SYSPROP = "-S";
   String ARG_TEMPLATE = "--template";
@@ -125,10 +134,14 @@ public interface Arguments {
 
 
   /**
-   * Deprecated
+   * Deprecated: use ARG_COMPONENT
    */
   @Deprecated
   String ARG_ROLE = "--role";
+
+  /**
+   * Deprecated: use ARG_COMP_OPT
+   */
   @Deprecated
   String ARG_ROLEOPT = "--roleopt";
 

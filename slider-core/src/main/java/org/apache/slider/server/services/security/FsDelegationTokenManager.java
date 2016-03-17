@@ -17,15 +17,16 @@
 package org.apache.slider.server.services.security;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.SecurityUtil;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
-import org.apache.hadoop.security.token.delegation.AbstractDelegationTokenIdentifier;
 import org.apache.hadoop.util.Time;
+import org.apache.slider.common.SliderXmlConfKeys;
 import org.apache.slider.common.tools.SliderUtils;
+import org.apache.slider.core.launch.CredentialUtils;
 import org.apache.slider.server.appmaster.SliderAppMaster;
 import org.apache.slider.server.appmaster.actions.AsyncAction;
 import org.apache.slider.server.appmaster.actions.QueueAccess;
@@ -63,15 +64,15 @@ public class FsDelegationTokenManager {
 
   private void createRemoteUser(Configuration configuration) throws IOException {
     Configuration loginConfig = new Configuration(configuration);
-    loginConfig.set(DFSConfigKeys.HADOOP_SECURITY_AUTHENTICATION,
+    loginConfig.set(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION,
                     "kerberos");
     // using HDFS principal...
     this.remoteUser = UserGroupInformation
         .loginUserFromKeytabAndReturnUGI(
             SecurityUtil.getServerPrincipal(
-                loginConfig.get(DFSConfigKeys.DFS_NAMENODE_KERBEROS_PRINCIPAL_KEY),
+                loginConfig.get(SliderXmlConfKeys.DFS_NAMENODE_KERBEROS_PRINCIPAL_KEY),
                 InetAddress.getLocalHost().getCanonicalHostName()),
-            loginConfig.get(DFSConfigKeys.DFS_NAMENODE_KEYTAB_FILE_KEY));
+            loginConfig.get(SliderXmlConfKeys.DFS_NAMENODE_KEYTAB_FILE_KEY));
     log.info("Created remote user {}.  UGI reports current user is {}",
              this.remoteUser, UserGroupInformation.getCurrentUser());
   }
@@ -84,8 +85,8 @@ public class FsDelegationTokenManager {
     if (SliderUtils.isHadoopClusterSecure(configuration) &&
         renewingAction == null) {
       renewInterval = configuration.getLong(
-          DFSConfigKeys.DFS_NAMENODE_DELEGATION_TOKEN_RENEW_INTERVAL_KEY,
-          DFSConfigKeys.DFS_NAMENODE_DELEGATION_TOKEN_RENEW_INTERVAL_DEFAULT);
+          SliderXmlConfKeys.DFS_NAMENODE_DELEGATION_TOKEN_RENEW_INTERVAL_KEY,
+          SliderXmlConfKeys.DFS_NAMENODE_DELEGATION_TOKEN_RENEW_INTERVAL_DEFAULT);
       // constructor of action will retrieve initial token.  One may already be
       // associated with user, but its lifecycle/management is not clear so let's
       // create and manage a token explicitly
@@ -113,7 +114,7 @@ public class FsDelegationTokenManager {
     if (renewAction != null) {
       renewAction.getToken().cancel(configuration);
     }
-    log.info("Renewing action {} removed and HDFS delegation token renewal "
+    log.info("Renewing action {} removed and delegation token renewal "
              + "cancelled", getRenewingActionName());
   }
 
@@ -155,20 +156,14 @@ public class FsDelegationTokenManager {
                      remoteUser.getShortUserName());
             Token token = fs.getDelegationToken(
                 remoteUser.getShortUserName());
-            tokenExpiryTime = getTokenExpiryTime(token);
-            log.info("Initial delegation token obtained with expiry time of {}", getPrintableExpirationTime(
-                tokenExpiryTime));
+            tokenExpiryTime = CredentialUtils.getTokenExpiryTime(token);
+            log.info("Initial delegation token obtained with expiry time of {}",
+                getPrintableExpirationTime(tokenExpiryTime));
             return token;
           }
         });
       }
       log.info("Initial request returned delegation token {}", token);
-    }
-
-    private long getTokenExpiryTime(Token token) throws IOException {
-      AbstractDelegationTokenIdentifier id =
-          (AbstractDelegationTokenIdentifier)token.decodeIdentifier();
-      return id.getMaxDate();
     }
 
     protected FileSystem getFileSystem()
@@ -241,7 +236,7 @@ public class FsDelegationTokenManager {
         token = findMatchingToken(service, tokens);
         currentUser.addToken(token.getService(), token);
 
-        tokenExpiryTime = getTokenExpiryTime(token);
+        tokenExpiryTime = CredentialUtils.getTokenExpiryTime(token);
 
         log.info("Expired HDFS delegation token replaced and added as credential"
                  + " to current user.  Token expires at {}",

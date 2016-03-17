@@ -21,4 +21,15 @@ package org.apache.slider.common;
 public class Constants {
   public static final int CONNECT_TIMEOUT = 10000;
   public static final int RPC_TIMEOUT = 15000;
+
+  public static final String HADOOP_JAAS_DEBUG = "HADOOP_JAAS_DEBUG";
+  public static final String KRB5_CCNAME = "KRB5CCNAME";
+  public static final String JAVA_SECURITY_KRB5_CONF
+    = "java.security.krb5.conf";
+  public static final String JAVA_SECURITY_KRB5_REALM
+    = "java.security.krb5.realm";
+  public static final String SUN_SECURITY_KRB5_DEBUG
+    = "sun.security.krb5.debug";
+  public static final String SUN_SECURITY_SPNEGO_DEBUG
+    = "sun.security.spnego.debug";
 }

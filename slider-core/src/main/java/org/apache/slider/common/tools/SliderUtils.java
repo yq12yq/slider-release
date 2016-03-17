@@ -35,7 +35,6 @@ import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.GlobFilter;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.io.IOUtils;
 import org.apache.hadoop.io.nativeio.NativeIO;
 import org.apache.hadoop.net.NetUtils;
@@ -48,7 +47,9 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.LocalResource;
+import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
+import org.apache.hadoop.yarn.client.api.AMRMClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.slider.Slider;
 import org.apache.slider.api.InternalKeys;
@@ -155,6 +156,7 @@ public final class SliderUtils {
    * name of docker program
    */
   public static final String DOCKER = "docker";
+  public static final int NODE_LIST_LIMIT = 10;
 
   private SliderUtils() {
   }
@@ -333,18 +335,14 @@ public final class SliderUtils {
       InetSocketAddress address,
       int connectTimeout)
       throws IOException {
-    Socket socket = null;
-    try {
-      socket = new Socket();
+    try(Socket socket = new Socket()) {
       socket.connect(address, connectTimeout);
     } catch (Exception e) {
       throw new IOException("Failed to connect to " + name
                             + " at " + address
-                            + " after " + connectTimeout + "millisconds"
+                            + " after " + connectTimeout + "milliseconds"
                             + ": " + e,
           e);
-    } finally {
-      IOUtils.closeSocket(socket);
     }
   }
 
@@ -501,8 +499,7 @@ public final class SliderUtils {
 
     //if the fallback option is NOT set, enable it.
     //if it is explicitly set to anything -leave alone
-    if (conf.get(SliderXmlConfKeys.IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH) ==
-        null) {
+    if (conf.get(SliderXmlConfKeys.IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH) == null) {
       conf.set(SliderXmlConfKeys.IPC_CLIENT_FALLBACK_TO_SIMPLE_AUTH, "true");
     }
     return conf;
@@ -515,7 +512,7 @@ public final class SliderUtils {
    * @return a stringified list
    */
   public static List<String> collectionToStringList(Collection c) {
-    List<String> l = new ArrayList<String>(c.size());
+    List<String> l = new ArrayList<>(c.size());
     for (Object o : c) {
       l.add(o.toString());
     }
@@ -747,10 +744,7 @@ public final class SliderUtils {
    *         through
    */
   public static boolean filter(String value, String filter) {
-    if (StringUtils.isEmpty(filter) || filter.equals(value)) {
-      return false;
-    }
-    return true;
+    return !(StringUtils.isEmpty(filter) || filter.equals(value));
   }
 
   /**
@@ -764,10 +758,7 @@ public final class SliderUtils {
    *         through
    */
   public static boolean filter(String value, Set<String> filters) {
-    if (filters.isEmpty() || filters.contains(value)) {
-      return false;
-    }
-    return true;
+    return !(filters.isEmpty() || filters.contains(value));
   }
 
   /**
@@ -793,9 +784,9 @@ public final class SliderUtils {
       return;
     }
     List<ApplicationReport> nonLiveInstance =
-        new ArrayList<ApplicationReport>(instances.size());
+        new ArrayList<>(instances.size());
     List<ApplicationReport> liveInstance =
-        new ArrayList<ApplicationReport>(instances.size());
+        new ArrayList<>(instances.size());
 
     for (ApplicationReport report : instances) {
       if (report.getYarnApplicationState() == YarnApplicationState.RUNNING
@@ -831,7 +822,7 @@ public final class SliderUtils {
   public static Map<String, ApplicationReport> buildApplicationReportMap(
       List<ApplicationReport> instances,
       YarnApplicationState minState, YarnApplicationState maxState) {
-    TreeMap<String, ApplicationReport> map = new TreeMap<String, ApplicationReport>();
+    TreeMap<String, ApplicationReport> map = new TreeMap<>();
     for (ApplicationReport report : instances) {
       YarnApplicationState state = report.getYarnApplicationState();
       if (state.ordinal() >= minState.ordinal() &&
@@ -849,7 +840,7 @@ public final class SliderUtils {
    * @return a map whose iterator returns the string-sorted ordering of entries
    */
   public static Map<String, String> sortedMap(Map<String, String> source) {
-    Map<String, String> out = new TreeMap<String, String>(source);
+    Map<String, String> out = new TreeMap<>(source);
     return out;
   }
 
@@ -859,7 +850,7 @@ public final class SliderUtils {
    * @return a string map
    */
   public static Map<String, String> toMap(Properties properties) {
-    Map<String, String> out = new HashMap<String, String>(properties.size());
+    Map<String, String> out = new HashMap<>(properties.size());
     for (Map.Entry<Object, Object> entry : properties.entrySet()) {
       out.put(entry.getKey().toString(), entry.getValue().toString());
     }
@@ -1035,7 +1026,7 @@ public final class SliderUtils {
    * something other than 0.0.0.0
    */
   public static boolean isAddressDefined(InetSocketAddress address) {
-    return !(address.getHostName().equals("0.0.0.0"));
+    return !(address.getHostString().equals("0.0.0.0"));
   }
 
   public static void setRmAddress(Configuration conf, String rmAddr) {
@@ -1141,7 +1132,7 @@ public final class SliderUtils {
    * @return a possibly empty map of environment variables.
    */
   public static Map<String, String> buildEnvMap(Map<String, String> roleOpts) {
-    Map<String, String> env = new HashMap<String, String>();
+    Map<String, String> env = new HashMap<>();
     if (roleOpts != null) {
       for (Map.Entry<String, String> entry : roleOpts.entrySet()) {
         String key = entry.getKey();
@@ -1225,11 +1216,11 @@ public final class SliderUtils {
    * @param conf configuration to look at
    * @return true if the cluster is secure
    * @throws IOException cluster is secure
-   * @throws BadConfigException the configuration/process is invalid
+   * @throws SliderException the configuration/process is invalid
    */
   public static boolean maybeInitSecurity(Configuration conf) throws
       IOException,
-      BadConfigException {
+      SliderException {
     boolean clusterSecure = isHadoopClusterSecure(conf);
     if (clusterSecure) {
       log.debug("Enabling security");
@@ -1247,7 +1238,7 @@ public final class SliderUtils {
    */
   public static boolean initProcessSecurity(Configuration conf) throws
       IOException,
-      BadConfigException {
+      SliderException {
 
     if (processSecurityAlreadyInitialized.compareAndSet(true, true)) {
       //security is already inited
@@ -1266,31 +1257,28 @@ public final class SliderUtils {
         conf.get(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHENTICATION));
     log.debug("hadoop.security.authorization={}",
         conf.get(CommonConfigurationKeysPublic.HADOOP_SECURITY_AUTHORIZATION));
-/*    SecurityUtil.setAuthenticationMethod(
-        UserGroupInformation.AuthenticationMethod.KERBEROS, conf);*/
     UserGroupInformation.setConfiguration(conf);
     UserGroupInformation authUser = UserGroupInformation.getCurrentUser();
-    log.debug("Authenticating as " + authUser.toString());
+    log.debug("Authenticating as {}", authUser);
     log.debug("Login user is {}", UserGroupInformation.getLoginUser());
     if (!UserGroupInformation.isSecurityEnabled()) {
-      throw new BadConfigException("Although secure mode is enabled," +
-                                   "the application has already set up its user as an insecure entity %s",
+      throw new SliderException(LauncherExitCodes.EXIT_UNAUTHORIZED,
+          "Although secure mode is enabled," +
+         "the application has already set up its user as an insecure entity %s",
           authUser);
     }
     if (authUser.getAuthenticationMethod() ==
         UserGroupInformation.AuthenticationMethod.SIMPLE) {
       throw new BadConfigException("Auth User is not Kerberized %s" +
-                                   " -security has already been set up with the wrong authentication method. "
-                                   +
-                                   "This can occur if a file system has already been created prior to the loading of "
-                                   + "the security configuration.",
+         " -security has already been set up with the wrong authentication method. "
+         + "This can occur if a file system has already been created prior to the loading of "
+         + "the security configuration.",
           authUser);
 
     }
 
     SliderUtils.verifyPrincipalSet(conf, YarnConfiguration.RM_PRINCIPAL);
-    SliderUtils.verifyPrincipalSet(conf,
-        DFSConfigKeys.DFS_NAMENODE_KERBEROS_PRINCIPAL_KEY);
+    SliderUtils.verifyPrincipalSet(conf, SliderXmlConfKeys.DFS_NAMENODE_KERBEROS_PRINCIPAL_KEY);
     return true;
   }
 
@@ -1348,28 +1336,29 @@ public final class SliderUtils {
                                 SliderFileSystem sliderFileSystem,
                                 Path tempPath,
                                 String libDir,
-                                String srcPath
-  )
-      throws IOException, SliderException {
+                                String srcPath) throws IOException, SliderException {
     log.info("Loading all dependencies from {}", srcPath);
     if (SliderUtils.isSet(srcPath)) {
       File srcFolder = new File(srcPath);
-      FilenameFilter jarFilter = new FilenameFilter() {
-        public boolean accept(File dir, String name) {
-          String lowercaseName = name.toLowerCase();
-          if (lowercaseName.endsWith(".jar")) {
-            return true;
-          } else {
-            return false;
-          }
-        }
-      };
+      FilenameFilter jarFilter = createJarFilter();
       File[] listOfJars = srcFolder.listFiles(jarFilter);
       for (File jarFile : listOfJars) {
         LocalResource res = sliderFileSystem.submitFile(jarFile, tempPath, libDir, jarFile.getName());
         providerResources.put(libDir + "/" + jarFile.getName(), res);
       }
     }
+  }
+
+  /**
+   * Accept all filenames ending with {@code .jar}
+   * @return a filename filter
+   */
+  public static FilenameFilter createJarFilter() {
+    return new FilenameFilter() {
+      public boolean accept(File dir, String name) {
+        return name.toLowerCase(Locale.ENGLISH).endsWith(".jar");
+      }
+    };
   }
 
   /**
@@ -1389,8 +1378,7 @@ public final class SliderUtils {
   }
 
   public static Map<String, Map<String, String>> deepClone(Map<String, Map<String, String>> src) {
-    Map<String, Map<String, String>> dest =
-        new HashMap<String, Map<String, String>>();
+    Map<String, Map<String, String>> dest = new HashMap<>();
     for (Map.Entry<String, Map<String, String>> entry : src.entrySet()) {
       dest.put(entry.getKey(), stringMapClone(entry.getValue()));
     }
@@ -1398,7 +1386,7 @@ public final class SliderUtils {
   }
 
   public static Map<String, String> stringMapClone(Map<String, String> src) {
-    Map<String, String> dest = new HashMap<String, String>();
+    Map<String, String> dest = new HashMap<>();
     return mergeEntries(dest, src.entrySet());
   }
 
@@ -1478,7 +1466,7 @@ public final class SliderUtils {
 
   /**
    * Convert a char sequence to a string.
-   * This ensures that comparisions work
+   * This ensures that comparisons work
    * @param charSequence source
    * @return the string equivalent
    */
@@ -1708,7 +1696,7 @@ public final class SliderUtils {
   }
 
   public static String propertiesToString(Properties props) {
-    TreeSet<String> keys = new TreeSet<String>(props.stringPropertyNames());
+    TreeSet<String> keys = new TreeSet<>(props.stringPropertyNames());
     StringBuilder builder = new StringBuilder();
     for (String key : keys) {
       builder.append(key)
@@ -1775,6 +1763,19 @@ public final class SliderUtils {
     return toTruncate.substring(0, maxSize - pad.length()).concat(pad);
   }
 
+  /**
+   * Get a string node label value from a node report
+   * @param report node report
+   * @return a single trimmed label or ""
+   */
+  public static String extractNodeLabel(NodeReport report) {
+    Set<String> newlabels = report.getNodeLabels();
+    if (newlabels != null && !newlabels.isEmpty()) {
+      return newlabels.iterator().next().trim();
+    } else {
+      return "";
+    }
+  }
 
   /**
    * Callable for async/scheduled halt
@@ -1865,29 +1866,19 @@ public final class SliderUtils {
     List<String> files = new ArrayList<>();
     generateFileList(files, srcFolder, srcFolder, true, filter);
 
-    TarArchiveOutputStream taos = null;
-    try {
-      taos = new TarArchiveOutputStream(new GZIPOutputStream(
-          new BufferedOutputStream(new FileOutputStream(tarGzipFile))));
+    try(TarArchiveOutputStream taos =
+            new TarArchiveOutputStream(new GZIPOutputStream(
+        new BufferedOutputStream(new FileOutputStream(tarGzipFile))))) {
       for (String file : files) {
         File srcFile = new File(srcFolder, file);
         TarArchiveEntry tarEntry = new TarArchiveEntry(
             srcFile, file);
         taos.putArchiveEntry(tarEntry);
-        FileInputStream in = new FileInputStream(srcFile);
-        try {
+        try(FileInputStream in = new FileInputStream(srcFile)) {
           org.apache.commons.io.IOUtils.copy(in, taos);
-        } finally {
-          if (in != null) {
-            in.close();
-          }
         }
         taos.flush();
         taos.closeArchiveEntry();
-      }
-    } finally {
-      if (taos != null) {
-        taos.close();
       }
     }
   }
@@ -1907,7 +1898,7 @@ public final class SliderUtils {
    * @return true if this is invoked in an HDP cluster or false otherwise
    */
   public static boolean isHdp() {
-    return StringUtils.isNotEmpty(getHdpVersion()) ? true : false;
+    return StringUtils.isNotEmpty(getHdpVersion());
   }
 
   /**
@@ -1972,9 +1963,7 @@ public final class SliderUtils {
       String entry)
       throws IOException {
     InputStream is = null;
-    FSDataInputStream appStream = null;
-    try {
-      appStream = fs.open(appPath);
+    try(FSDataInputStream appStream = fs.open(appPath)) {
       ZipArchiveInputStream zis = new ZipArchiveInputStream(appStream);
       ZipArchiveEntry zipEntry;
       boolean done = false;
@@ -2005,8 +1994,6 @@ public final class SliderUtils {
           done = true;
         }
       }
-    } finally {
-      IOUtils.closeStream(appStream);
     }
 
     return is;
@@ -2027,10 +2014,10 @@ public final class SliderUtils {
       errorText.append("No native IO library. ");
     }
     try {
-      String path = Shell.getQualifiedBinPath("winutils.exe");
+      String path = Shell.getQualifiedBinPath(WINUTILS);
       log.debug("winutils is at {}", path);
     } catch (IOException e) {
-      errorText.append("No WINUTILS.EXE. ");
+      errorText.append("No " + WINUTILS);
       log.warn("No winutils: {}", e, e);
     }
     try {
@@ -2095,11 +2082,8 @@ public final class SliderUtils {
     verifyFileSize(program, exe, 0x100);
 
     // now read two bytes and verify the header.
-
-    FileReader reader = null;
-    try {
+    try(FileReader reader = new FileReader(exe)) {
       int[] header = new int[2];
-      reader = new FileReader(exe);
       header[0] = reader.read();
       header[1] = reader.read();
       if ((header[0] != 'M' || header[1] != 'Z')) {
@@ -2107,8 +2091,6 @@ public final class SliderUtils {
                                         + " at " + exe
                                         + " is not a windows executable file");
       }
-    } finally {
-      IOUtils.closeStream(reader);
     }
   }
 
@@ -2157,16 +2139,16 @@ public final class SliderUtils {
    */
   public static void write(File outfile, byte[] data, boolean createParent)
       throws IOException {
-    File parentDir = outfile.getParentFile();
+    File parentDir = outfile.getCanonicalFile().getParentFile();
+    if (parentDir == null) {
+      throw new IOException(outfile.getPath() + " has no parent dir");
+    }
     if (createParent) {
       parentDir.mkdirs();
     }
     SliderUtils.verifyIsDir(parentDir, log);
-    FileOutputStream out = new FileOutputStream(outfile);
-    try {
+    try(FileOutputStream out = new FileOutputStream(outfile)) {
       out.write(data);
-    } finally {
-      IOUtils.closeStream(out);
     }
 
   }
@@ -2333,6 +2315,7 @@ public final class SliderUtils {
   public static String getClientConfigPath() {
     URL path = ConfigHelper.class.getClassLoader().getResource(
         SliderKeys.SLIDER_CLIENT_XML);
+    Preconditions.checkNotNull(path, "Failed to locate resource " + SliderKeys.SLIDER_CLIENT_XML);
     return path.toString();
   }
 
@@ -2371,11 +2354,11 @@ public final class SliderUtils {
   public static void validateHDFSFile(SliderFileSystem sliderFileSystem,
       String pathStr)
       throws IOException, URISyntaxException {
-    URI pathURI = new URI(pathStr);
-    InputStream inputStream =
-        sliderFileSystem.getFileSystem().open(new Path(pathURI));
-    if (inputStream == null) {
-      throw new IOException("HDFS file " + pathStr + " can't be opened");
+    try(InputStream inputStream =
+            sliderFileSystem.getFileSystem().open(new Path(new URI(pathStr)))) {
+      if (inputStream == null) {
+        throw new IOException("HDFS file " + pathStr + " can't be opened");
+      }
     }
   }
 
@@ -2469,7 +2452,7 @@ public final class SliderUtils {
    * @return +ve if x is less than y, -ve if y is greater than x; 0 for equality
    */
   public static int compareTwoLongsReverse(long x, long y) {
-    return (x < y) ? +1 : ((x == y) ? 0 : -1);
+    return (x < y) ? 1 : ((x == y) ? 0 : -1);
   }
 
   public static String getSystemEnv(String property) {
@@ -2478,5 +2461,35 @@ public final class SliderUtils {
 
   public static Map<String, String> getSystemEnv() {
     return System.getenv();
+  }
+
+  public static String requestToString(AMRMClient.ContainerRequest request) {
+    Preconditions.checkArgument(request != null, "Null request");
+    StringBuilder buffer = new StringBuilder(request.toString());
+    buffer.append("; ");
+    buffer.append("relaxLocality=").append(request.getRelaxLocality()).append("; ");
+    String labels = request.getNodeLabelExpression();
+    if (labels != null) {
+      buffer.append("nodeLabels=").append(labels).append("; ");
+    }
+    List<String> nodes = request.getNodes();
+    if (nodes != null) {
+      buffer.append("Nodes = [ ");
+      int size = nodes.size();
+      for (int i = 0; i < Math.min(NODE_LIST_LIMIT, size); i++) {
+        buffer.append(nodes.get(i)).append(' ');
+      }
+      if (size > NODE_LIST_LIMIT) {
+        buffer.append(String.format("...(total %d entries)", size));
+      }
+      buffer.append("]; ");
+    }
+    List<String> racks = request.getRacks();
+    if (racks != null) {
+      buffer.append("racks = [")
+          .append(join(racks, ", ", false))
+          .append("]; ");
+    }
+    return buffer.toString();
   }
 }

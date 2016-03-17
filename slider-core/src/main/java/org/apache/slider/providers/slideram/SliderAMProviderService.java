@@ -88,12 +88,11 @@ public class SliderAMProviderService extends AbstractProviderService implements
       MapOperations resourceComponent,
       MapOperations appComponent,
       Path containerTmpDirPath) throws IOException, SliderException {
-    
   }
 
   @Override
   public List<ProviderRole> getRoles() {
-    return new ArrayList<ProviderRole>(0);
+    return new ArrayList<>(0);
   }
 
   @Override
@@ -142,10 +141,10 @@ public class SliderAMProviderService extends AbstractProviderService implements
 
     try {
 
-      URL managementAPI = new URL(amWebURI, SLIDER_PATH_MANAGEMENT);
-      URL registryREST = new URL(amWebURI, SLIDER_PATH_REGISTRY );
+      URL managementAPI = new URL(amWebURI, RELATIVE_PATH_MANAGEMENT);
+      URL registryREST = new URL(amWebURI, RELATIVE_PATH_REGISTRY);
 
-      URL publisherURL = new URL(amWebURI, SLIDER_PATH_PUBLISHER);
+      URL publisherURL = new URL(amWebURI, RELATIVE_PATH_PUBLISHER);
 
       // Set the configurations URL.
 

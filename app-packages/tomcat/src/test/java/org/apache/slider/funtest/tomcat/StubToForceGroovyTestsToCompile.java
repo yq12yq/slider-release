@@ -16,31 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.slider.server.appmaster;
+package org.apache.slider.funtest.tomcat;
 
-import org.apache.slider.common.SliderExitCodes;
-import org.apache.slider.core.main.LauncherExitCodes;
-
-public class AMUtils {
-  /**
-   * Map an exit code from a process 
-   * @param exitCode
-   * @return an exit code
-   */
-  public static int mapProcessExitCodeToYarnExitCode(int exitCode) {
-    switch (exitCode) {
-      case LauncherExitCodes.EXIT_SUCCESS:
-        return LauncherExitCodes.EXIT_SUCCESS;
-      //remap from a planned shutdown to a failure
-      case LauncherExitCodes.EXIT_CLIENT_INITIATED_SHUTDOWN:
-        return SliderExitCodes.EXIT_SUCCESS;
-      default:
-        return exitCode;
-    }
-  }
-
-  public static boolean isMappedExitAFailure(int mappedExitCode) {
-    return mappedExitCode != 0;
-  }
-
+public class StubToForceGroovyTestsToCompile {
 }

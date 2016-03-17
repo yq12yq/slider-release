@@ -20,6 +20,7 @@ package org.apache.slider.core.launch;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.net.NetUtils;
+import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -41,9 +42,10 @@ public class ContainerLauncher extends AbstractLauncher {
   public final Container container;
 
   public ContainerLauncher(Configuration conf,
-                           CoreFileSystem fs,
-                           Container container) {
-    super(conf, fs);
+      CoreFileSystem coreFileSystem,
+      Container container,
+      Credentials credentials) {
+    super(conf, coreFileSystem, credentials);
     this.container = container;
   }
 
@@ -55,17 +57,13 @@ public class ContainerLauncher extends AbstractLauncher {
   public UserGroupInformation setupUGI() {
     UserGroupInformation user =
       UserGroupInformation.createRemoteUser(container.getId().toString());
-    String cmIpPortStr =
-      container.getNodeId().getHost() + ":" + container.getNodeId().getPort();
-    final InetSocketAddress cmAddress =
-      NetUtils.createSocketAddr(cmIpPortStr);
+    String cmIpPortStr = container.getNodeId().getHost() + ":" + container.getNodeId().getPort();
+    final InetSocketAddress cmAddress = NetUtils.createSocketAddr(cmIpPortStr);
 
-    org.apache.hadoop.yarn.api.records.Token containerToken =
-      container.getContainerToken();
+    org.apache.hadoop.yarn.api.records.Token containerToken = container.getContainerToken();
     if (containerToken != null) {
       Token<ContainerTokenIdentifier> token =
-        ConverterUtils.convertFromYarn(containerToken,
-                                       cmAddress);
+        ConverterUtils.convertFromYarn(containerToken, cmAddress);
       user.addToken(token);
     }
     return user;

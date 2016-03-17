@@ -47,8 +47,14 @@ public class ClientArgs extends CommonArgs {
    * KEEP IN ALPHABETICAL ORDER
    */
   private AbstractClusterBuildingActionArgs buildingActionArgs;
+
+  // =========================================================
+  // Keep all of these in alphabetical order. Thanks.
+  // =========================================================
+
   private final ActionAMSuicideArgs actionAMSuicideArgs = new ActionAMSuicideArgs();
   private final ActionBuildArgs actionBuildArgs = new ActionBuildArgs();
+  private final ActionClientArgs actionClientArgs = new ActionClientArgs();
   private final ActionCreateArgs actionCreateArgs = new ActionCreateArgs();
   private final ActionDependencyArgs actionDependencyArgs = new ActionDependencyArgs();
   private final ActionDestroyArgs actionDestroyArgs = new ActionDestroyArgs();
@@ -58,21 +64,23 @@ public class ClientArgs extends CommonArgs {
   private final ActionFreezeArgs actionFreezeArgs = new ActionFreezeArgs();
   private final ActionHelpArgs actionHelpArgs = new ActionHelpArgs();
   private final ActionInstallPackageArgs actionInstallPackageArgs = new ActionInstallPackageArgs();
-  private final ActionPackageArgs actionPackageArgs = new ActionPackageArgs();
-  private final ActionClientArgs actionClientArgs = new ActionClientArgs();
   private final ActionInstallKeytabArgs actionInstallKeytabArgs = new ActionInstallKeytabArgs();
+  private final ActionKDiagArgs actionKDiagArgs = new ActionKDiagArgs();
   private final ActionKeytabArgs actionKeytabArgs = new ActionKeytabArgs();
   private final ActionKillContainerArgs actionKillContainerArgs =
     new ActionKillContainerArgs();
   private final ActionListArgs actionListArgs = new ActionListArgs();
   private final ActionLookupArgs actionLookupArgs = new ActionLookupArgs();
+  private final ActionNodesArgs actionNodesArgs = new ActionNodesArgs();
+  private final ActionPackageArgs actionPackageArgs = new ActionPackageArgs();
   private final ActionRegistryArgs actionRegistryArgs = new ActionRegistryArgs();
   private final ActionResolveArgs actionResolveArgs = new ActionResolveArgs();
   private final ActionStatusArgs actionStatusArgs = new ActionStatusArgs();
   private final ActionThawArgs actionThawArgs = new ActionThawArgs();
+  private final ActionTokensArgs actionTokenArgs = new ActionTokensArgs();
   private final ActionUpdateArgs actionUpdateArgs = new ActionUpdateArgs();
-  private final ActionVersionArgs actionVersionArgs = new ActionVersionArgs();
   private final ActionUpgradeArgs actionUpgradeArgs = new ActionUpgradeArgs();
+  private final ActionVersionArgs actionVersionArgs = new ActionVersionArgs();
 
   public ClientArgs(String[] args) {
     super(args);
@@ -86,31 +94,34 @@ public class ClientArgs extends CommonArgs {
   protected void addActionArguments() {
 
     addActions(
-        actionPackageArgs,
-        actionKeytabArgs,
+        actionAMSuicideArgs,
         actionBuildArgs,
-        actionDependencyArgs,
-        actionCreateArgs,
-        actionListArgs,
-        actionStatusArgs,
-        actionRegistryArgs,
         actionClientArgs,
-        actionFlexArgs,
+        actionCreateArgs,
+        actionDependencyArgs,
+        actionDestroyArgs,
         actionDiagnosticArgs,
+        actionExistsArgs,
+        actionFlexArgs,
         actionFreezeArgs,
+        actionHelpArgs,
+        actionInstallKeytabArgs,
+        actionInstallPackageArgs,
+        actionKDiagArgs,
+        actionKeytabArgs,
+        actionKillContainerArgs,
+        actionListArgs,
+        actionLookupArgs,
+        actionNodesArgs,
+        actionPackageArgs,
+        actionRegistryArgs,
+        actionResolveArgs,
+        actionStatusArgs,
         actionThawArgs,
+        actionTokenArgs,
         actionUpdateArgs,
         actionUpgradeArgs,
-        actionDestroyArgs,
-        actionExistsArgs,
-        actionLookupArgs,
-        actionResolveArgs,
-        actionKillContainerArgs,
-        actionAMSuicideArgs,
-        actionInstallPackageArgs,
-        actionInstallKeytabArgs,
-        actionVersionArgs,
-        actionHelpArgs
+        actionVersionArgs
     );
   }
 
@@ -154,6 +165,10 @@ public class ClientArgs extends CommonArgs {
 
   public ActionInstallKeytabArgs getActionInstallKeytabArgs() { return actionInstallKeytabArgs; }
 
+  public ActionKDiagArgs getActionKDiagArgs() {
+    return actionKDiagArgs;
+  }
+
   public ActionKeytabArgs getActionKeytabArgs() { return actionKeytabArgs; }
 
   public ActionUpdateArgs getActionUpdateArgs() {
@@ -196,6 +211,10 @@ public class ClientArgs extends CommonArgs {
     return actionListArgs;
   }
 
+  public ActionNodesArgs getActionNodesArgs() {
+    return actionNodesArgs;
+  }
+
   public ActionLookupArgs getActionLookupArgs() {
     return actionLookupArgs;
   }
@@ -216,100 +235,141 @@ public class ClientArgs extends CommonArgs {
     return actionThawArgs;
   }
 
+  public ActionTokensArgs getActionTokenArgs() {
+    return actionTokenArgs;
+  }
+
   /**
    * Look at the chosen action and bind it as the core action for the operation.
-   * In theory this could be done by introspecting on the list of actions and 
-   * choosing it without the switch statement. In practise this switch, while
-   * verbose, is easier to debug. And in JDK7, much simpler.
    * @throws SliderException bad argument or similar
    */
   @Override
   public void applyAction() throws SliderException {
     String action = getAction();
-    if (SliderActions.ACTION_BUILD.equals(action)) {
-      bindCoreAction(actionBuildArgs);
-      //its a builder, so set those actions too
-      buildingActionArgs = actionBuildArgs;
-    } else if (SliderActions.ACTION_CREATE.equals(action)) {
-      bindCoreAction(actionCreateArgs);
-      //its a builder, so set those actions too
-      buildingActionArgs = actionCreateArgs;
+    if (SliderUtils.isUnset(action)) {
+      action = ACTION_HELP;
+    }
+    switch (action) {
+      case ACTION_BUILD:
+        bindCoreAction(actionBuildArgs);
+        //its a builder, so set those actions too
+        buildingActionArgs = actionBuildArgs;
+        break;
 
-    } else if (SliderActions.ACTION_FREEZE.equals(action)) {
-      bindCoreAction(actionFreezeArgs);
+      case ACTION_CREATE:
+        bindCoreAction(actionCreateArgs);
+        //its a builder, so set those actions too
+        buildingActionArgs = actionCreateArgs;
+        break;
 
-    } else if (SliderActions.ACTION_THAW.equals(action)) {
-      bindCoreAction(actionThawArgs);
+      case ACTION_FREEZE:
+        bindCoreAction(actionFreezeArgs);
+        break;
 
-    } else if (SliderActions.ACTION_AM_SUICIDE.equals(action)) {
-      bindCoreAction(actionAMSuicideArgs);
+      case ACTION_THAW:
+        bindCoreAction(actionThawArgs);
+        break;
 
-    } else if (SliderActions.ACTION_DEPENDENCY.equals(action)) {
-      bindCoreAction(actionDependencyArgs);
+      case ACTION_AM_SUICIDE:
+        bindCoreAction(actionAMSuicideArgs);
+        break;
 
-    } else if (SliderActions.ACTION_DESTROY.equals(action)) {
-      bindCoreAction(actionDestroyArgs);
+      case ACTION_CLIENT:
+        bindCoreAction(actionClientArgs);
+        break;
 
-    } else if (SliderActions.ACTION_DIAGNOSTICS.equals(action)) {
-      bindCoreAction(actionDiagnosticArgs);
+      case ACTION_DEPENDENCY:
+        bindCoreAction(actionDependencyArgs);
+        break;
 
-    } else if (SliderActions.ACTION_EXISTS.equals(action)) {
-      bindCoreAction(actionExistsArgs);
+      case ACTION_DESTROY:
+        bindCoreAction(actionDestroyArgs);
+        break;
 
-    } else if (SliderActions.ACTION_FLEX.equals(action)) {
-      bindCoreAction(actionFlexArgs);
+      case ACTION_DIAGNOSTICS:
+        bindCoreAction(actionDiagnosticArgs);
+        break;
 
-    } else if (SliderActions.ACTION_HELP.equals(action)) {
-      bindCoreAction(actionHelpArgs);
+      case ACTION_EXISTS:
+        bindCoreAction(actionExistsArgs);
+        break;
 
-    } else if (SliderActions.ACTION_INSTALL_PACKAGE.equals(action)) {
-      bindCoreAction(actionInstallPackageArgs);
+      case ACTION_FLEX:
+        bindCoreAction(actionFlexArgs);
+        break;
 
-    } else if (SliderActions.ACTION_KEYTAB.equals(action)) {
-      bindCoreAction(actionKeytabArgs);
+      case ACTION_HELP:
+        bindCoreAction(actionHelpArgs);
+        break;
 
-    } else if (SliderActions.ACTION_PACKAGE.equals(action)) {
-      bindCoreAction(actionPackageArgs);
+      case ACTION_INSTALL_KEYTAB:
+        bindCoreAction(actionInstallKeytabArgs);
+        break;
 
-    } else if (SliderActions.ACTION_CLIENT.equals(action)) {
-      bindCoreAction(actionClientArgs);
+      case ACTION_INSTALL_PACKAGE:
+        bindCoreAction(actionInstallPackageArgs);
+        break;
 
-    } else if (SliderActions.ACTION_INSTALL_KEYTAB.equals(action)) {
-      bindCoreAction(actionInstallKeytabArgs);
+      case ACTION_KDIAG:
+        bindCoreAction(actionKDiagArgs);
+        break;
 
-    } else if (SliderActions.ACTION_KILL_CONTAINER.equals(action)) {
-      bindCoreAction(actionKillContainerArgs);
+      case ACTION_KEYTAB:
+        bindCoreAction(actionKeytabArgs);
+        break;
 
-    } else if (SliderActions.ACTION_LIST.equals(action)) {
-      bindCoreAction(actionListArgs);
+      case ACTION_KILL_CONTAINER:
+        bindCoreAction(actionKillContainerArgs);
+        break;
 
-    } else if (SliderActions.ACTION_LOOKUP.equals(action)) {
-      bindCoreAction(actionLookupArgs);
+      case ACTION_LIST:
+        bindCoreAction(actionListArgs);
+        break;
 
-    } else if (SliderActions.ACTION_REGISTRY.equals(action)) {
-      bindCoreAction(actionRegistryArgs);
+      case ACTION_LOOKUP:
+        bindCoreAction(actionLookupArgs);
+        break;
 
-    } else if (SliderActions.ACTION_RESOLVE.equals(action)) {
-      bindCoreAction(actionResolveArgs);
+      case ACTION_NODES:
+        bindCoreAction(actionNodesArgs);
+        break;
 
-    } else if (SliderActions.ACTION_STATUS.equals(action)) {
-      bindCoreAction(actionStatusArgs);
+      case ACTION_PACKAGE:
+        bindCoreAction(actionPackageArgs);
+        break;
 
-    } else if (SliderActions.ACTION_UPDATE.equals(action)) {
-      bindCoreAction(actionUpdateArgs);
+      case ACTION_REGISTRY:
+        bindCoreAction(actionRegistryArgs);
+        break;
 
-    } else if (SliderActions.ACTION_UPGRADE.equals(action)) {
-      bindCoreAction(actionUpgradeArgs);
+      case ACTION_RESOLVE:
+        bindCoreAction(actionResolveArgs);
+        break;
 
-    } else if (SliderActions.ACTION_VERSION.equals(action)) {
-      bindCoreAction(actionVersionArgs);
+      case ACTION_STATUS:
+        bindCoreAction(actionStatusArgs);
+        break;
 
-    } else if (SliderUtils.isUnset(action)) {
-      bindCoreAction(actionHelpArgs);
+      case ACTION_TOKENS:
+        bindCoreAction(actionTokenArgs);
+        break;
 
-    } else {
-      throw new BadCommandArgumentsException(ErrorStrings.ERROR_UNKNOWN_ACTION
-                                             + " " + action);
+      case ACTION_UPDATE:
+        bindCoreAction(actionUpdateArgs);
+        break;
+
+      case ACTION_UPGRADE:
+        bindCoreAction(actionUpgradeArgs);
+        break;
+
+      case ACTION_VERSION:
+        bindCoreAction(actionVersionArgs);
+        break;
+
+      default:
+        throw new BadCommandArgumentsException(ErrorStrings.ERROR_UNKNOWN_ACTION
+        + " " + action);
     }
   }
+
 }

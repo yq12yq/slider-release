@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -138,6 +139,21 @@ public class MapOperations implements Map<String, String> {
     String val = getOption(option, Integer.toString(defVal));
     return Integer.decode(val);
   }
+
+  /**
+   * Get a long option; use {@link Long#decode(String)} so as to take hex
+   * oct and bin values too.
+   *
+   * @param option option name
+   * @param defVal default value
+   * @return parsed value
+   * @throws NumberFormatException
+   */
+  public long getOptionLong(String option, long defVal) {
+    String val = getOption(option, Long.toString(defVal));
+    return Long.decode(val);
+  }
+
   /**
    * Get a mandatory integer option; use {@link Integer#decode(String)} so as to take hex
    * oct and bin values too.
@@ -308,5 +324,21 @@ public class MapOperations implements Map<String, String> {
     // calculate total time, schedule the reset if expected
     long totalMinutes = days * 24 * 60 + hours * 24 + minutes;
     return totalMinutes * 60 + seconds;
+  }
+
+  /**
+   * Get all entries with a specific prefix
+   * @param prefix prefix
+   * @return a prefixed map, possibly empty
+   */
+  public Map<String, String> prefixedWith(String prefix) {
+
+    Map<String, String> prefixed = new HashMap<>(size());
+    for (Entry<String, String> entry: entrySet()) {
+      if (entry.getKey().startsWith(prefix)) {
+        prefixed.put(entry.getKey(), entry.getValue());
+      }
+    }
+    return prefixed;
   }
 }

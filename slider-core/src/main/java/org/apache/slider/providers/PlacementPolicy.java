@@ -27,7 +27,12 @@ public class PlacementPolicy {
   /**
    * Default value: history used, anti-affinity hinted at on rebuild/flex up
    */
-  public static final int DEFAULT = 0;
+  public static final int NONE = 0;
+
+  /**
+   * Default value: history used, anti-affinity hinted at on rebuild/flex up
+   */
+  public static final int DEFAULT = NONE;
 
   /**
    * Strict placement: when asking for an instance for which there is
@@ -38,10 +43,16 @@ public class PlacementPolicy {
   /**
    * No data locality; do not use placement history
    */
-  public static final int NO_DATA_LOCALITY = 2;
+  public static final int ANYWHERE = 2;
 
   /**
-   * Anti-affinity is mandatory. This is not supported in YARN
+   * @Deprecated: use {@link #ANYWHERE}
+   */
+  @Deprecated
+  public static final int NO_DATA_LOCALITY = ANYWHERE;
+
+  /**
+   * Anti-affinity is mandatory.
    */
   public static final int ANTI_AFFINITY_REQUIRED = 4;
   

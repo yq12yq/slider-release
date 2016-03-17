@@ -22,9 +22,6 @@ import groovy.util.logging.Slf4j
 
 import org.apache.slider.common.tools.SliderUtils
 import org.apache.slider.funtest.framework.AgentCommandTestBase
-import org.apache.slider.common.params.SliderActions
-import org.apache.slider.client.SliderClient
-import org.apache.slider.common.SliderExitCodes
 import org.apache.slider.funtest.framework.SliderShell
 import org.junit.After
 import org.junit.Before
@@ -79,7 +76,7 @@ public class ComponentConfigsInAppConfigShowUpOnAgentIT extends AgentCommandTest
     list(0, [ARG_STATE, "running"])
     status(0, CLUSTER)
     Thread.sleep(10000)
-    verifyFileExist(TARGET_FILE)
+    verifyFileExists(TARGET_FILE)
   }
   
   public void setupApplicationPackage() {

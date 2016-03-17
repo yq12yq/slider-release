@@ -26,7 +26,9 @@ package org.apache.slider.common.params;
 public interface SliderActions {
   String ACTION_AM_SUICIDE = "am-suicide";
   String ACTION_BUILD = "build";
+  String ACTION_CLIENT = "client";
   String ACTION_CREATE = "create";
+  String ACTION_DIAGNOSTICS = "diagnostics";
   String ACTION_DEPENDENCY = "dependency";
   String ACTION_UPDATE = "update";
   String ACTION_UPGRADE = "upgrade";
@@ -36,24 +38,26 @@ public interface SliderActions {
   String ACTION_FLEX = "flex";
   String ACTION_FREEZE = "stop";
   String ACTION_HELP = "help";
+  String ACTION_INSTALL_KEYTAB = "install-keytab";
+  String ACTION_INSTALL_PACKAGE = "install-package";
+  String ACTION_KDIAG = "kdiag";
+  String ACTION_KEYTAB = "keytab";
   String ACTION_KILL_CONTAINER = "kill-container";
   String ACTION_LIST = "list";
   String ACTION_LOOKUP = "lookup";
+  String ACTION_NODES = "nodes";
+  String ACTION_PACKAGE = "package";
   String ACTION_PREFLIGHT = "preflight";
   String ACTION_RECONFIGURE = "reconfigure";
   String ACTION_REGISTRY = "registry";
   String ACTION_RESOLVE = "resolve";
   String ACTION_STATUS = "status";
   String ACTION_THAW = "start";
+  String ACTION_TOKENS = "tokens";
+
   String ACTION_VERSION = "version";
-  String ACTION_DIAGNOSTICS = "diagnostics";
-  String ACTION_INSTALL_PACKAGE = "install-package";
-  String ACTION_PACKAGE = "package";
-  String ACTION_INSTALL_KEYTAB = "install-keytab";
-  String ACTION_CLIENT = "client";
-  String ACTION_KEYTAB = "keytab";
   String DESCRIBE_ACTION_AM_SUICIDE =
-    "Tell the Slider Application Master to simulate a process failure by terminating itself";
+      "Tell the Slider Application Master to simulate a process failure by terminating itself";
   String DESCRIBE_ACTION_BUILD =
     "Build a Slider cluster specification, but do not start it";
   String DESCRIBE_ACTION_CREATE =
@@ -65,7 +69,7 @@ public interface SliderActions {
   String DESCRIBE_ACTION_UPGRADE =
       "Rolling upgrade/downgrade the application to a newer/previous version";
   String DESCRIBE_ACTION_DESTROY =
-        "Destroy a frozen Slider application)";
+        "Destroy a stopped Slider application";
   String DESCRIBE_ACTION_EXISTS =
             "Probe for an application running";
   String DESCRIBE_ACTION_FLEX = "Flex a Slider application";
@@ -73,6 +77,7 @@ public interface SliderActions {
               "Stop a running application";
   String DESCRIBE_ACTION_GETCONF =
                 "Get the configuration of an application";
+  String DESCRIBE_ACTION_KDIAG = "Diagnose Kerberos problems";
   String DESCRIBE_ACTION_KILL_CONTAINER =
     "Kill a container in the application";
   String DESCRIBE_ACTION_HELP = "Print help information";
@@ -80,6 +85,7 @@ public interface SliderActions {
                   "List running Slider applications";
   String DESCRIBE_ACTION_LOOKUP =
                   "look up a YARN application";
+  String DESCRIBE_ACTION_NODES = "List the node information for the YARN cluster or a running application";
   String DESCRIBE_ACTION_MONITOR =
                     "Monitor a running application";
   String DESCRIBE_ACTION_REGISTRY =

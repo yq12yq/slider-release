@@ -16,15 +16,31 @@
  * limitations under the License.
  */
 
-package org.apache.slider.server.appmaster.state;
+package org.apache.slider.funtest.commands
 
-import org.apache.hadoop.yarn.api.records.Resource;
+import groovy.transform.CompileStatic
+import groovy.util.logging.Slf4j
+import org.apache.slider.common.params.Arguments
+import org.apache.slider.common.params.SliderActions
+import org.apache.slider.funtest.framework.CommandTestBase
+import org.apache.slider.funtest.framework.SliderShell
+import org.junit.Test
+import static org.apache.slider.common.Constants.*
 
-/**
- * Factory supplying records created by the App state; entry point
- * for mock code.
- */
-public abstract class AbstractRecordFactory {
-  
-  public abstract Resource newResource();
+@CompileStatic
+@Slf4j
+public class KDiagCommandIT extends CommandTestBase implements Arguments {
+
+  @Test
+  public void testKdiag() throws Throwable {
+    SliderShell shell = new SliderShell([
+      SliderActions.ACTION_KDIAG,
+      ARG_KEYLEN, "128"
+    ],
+      [(HADOOP_JAAS_DEBUG): "true"]
+    )
+    shell.execute()
+    assertSuccess(shell)
+  }
+
 }

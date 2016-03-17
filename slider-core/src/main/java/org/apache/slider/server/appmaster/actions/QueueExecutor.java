@@ -51,7 +51,7 @@ public class QueueExecutor implements Runnable {
   }
 
   @VisibleForTesting
-  QueueExecutor(QueueService actionQueues) {
+  public QueueExecutor(QueueService actionQueues) {
     Preconditions.checkNotNull(actionQueues);
     this.appMaster = null;
     this.appState = null;
@@ -77,7 +77,7 @@ public class QueueExecutor implements Runnable {
       log.info("Queue Executor run() stopped");
     } catch (InterruptedException e) {
       // interrupted: exit
-    } catch (Exception e) {
+    } catch (Throwable e) {
       log.error("Exception processing {}: {}", take, e, e);
       if (appMaster != null) {
         appMaster.onExceptionInThread(Thread.currentThread(), e);

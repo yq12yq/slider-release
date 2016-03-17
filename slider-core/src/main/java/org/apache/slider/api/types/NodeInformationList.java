@@ -16,15 +16,26 @@
  * limitations under the License.
  */
 
-package org.apache.slider.server.appmaster.model.mock
+package org.apache.slider.api.types;
 
-import org.apache.hadoop.yarn.api.records.Resource
-import org.apache.slider.server.appmaster.state.AbstractRecordFactory
+import org.apache.slider.core.persist.JsonSerDeser;
 
-class MockRecordFactory extends AbstractRecordFactory {
+import java.util.ArrayList;
+import java.util.Collection;
 
-  @Override
-  Resource newResource() {
-    return new MockResource()
+public class NodeInformationList extends ArrayList<NodeInformation> {
+  public NodeInformationList() {
+  }
+
+  public NodeInformationList(Collection<? extends NodeInformation> c) {
+    super(c);
+  }
+
+  public NodeInformationList(int initialCapacity) {
+    super(initialCapacity);
+  }
+
+  public static JsonSerDeser<NodeInformationList> createSerializer() {
+    return new JsonSerDeser<>(NodeInformationList.class);
   }
 }

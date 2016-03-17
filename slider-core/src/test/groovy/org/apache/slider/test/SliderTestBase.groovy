@@ -18,7 +18,6 @@
 
 package org.apache.slider.test
 
-import com.codahale.metrics.MetricRegistry
 import groovy.transform.CompileStatic
 import org.apache.hadoop.fs.FileUtil
 import org.apache.slider.common.SliderXMLConfKeysForTesting
@@ -32,8 +31,7 @@ import org.junit.rules.TestName
 /**
  * Base class for unit tests as well as ones starting mini clusters
  * -the foundational code and methods
- * 
- * 
+ *
  */
 
 @CompileStatic
@@ -44,7 +42,6 @@ public abstract class SliderTestBase extends SliderTestUtils {
    */
   public static final MetricsAndMonitoring metrics = new MetricsAndMonitoring()
   public static final int WEB_STARTUP_TIME = 30000
-  public static final byte[] NO_BYTES = new byte[0]
 
   @Rule
   public TestName methodName = new TestName();

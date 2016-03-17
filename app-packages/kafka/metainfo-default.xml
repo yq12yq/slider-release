@@ -1,0 +1,73 @@
+<?xml version="1.0"?>
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to You under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+<metainfo>
+  <schemaVersion>2.0</schemaVersion>
+  <application>
+    <name>KAFKA</name>
+    <comment>Scalable High-thoughput Distributed Message Queue</comment>
+    <version>${kafka.version}</version>
+    <exportedConfigs>None</exportedConfigs>
+
+    <exportGroups>
+      <exportGroup>
+        <name>servers</name>
+        <exports>
+          <export>
+            <name>org.apache.kafka.broker</name>
+            <value>${KAFKA_BROKER_HOST}:${site.server.port}</value>
+          </export>
+        </exports>
+      </exportGroup>
+    </exportGroups>
+
+    <components>
+      <component>
+        <name>KAFKA_BROKER</name>
+        <category>SLAVE</category>
+        <minInstanceCount>1</minInstanceCount>
+        <compExports>servers-org.apache.kafka.broker</compExports>
+        <exportedConfigs>broker</exportedConfigs>
+        <commandScript>
+          <script>scripts/kafka.py</script>
+          <scriptType>PYTHON</scriptType>
+        </commandScript>
+      </component>
+    </components>
+
+    <configFiles>
+      <configFile>
+        <type>xml</type>
+        <fileName>server.xml</fileName>
+        <dictionaryName>server</dictionaryName>
+      </configFile>
+    </configFiles>
+
+    <osSpecifics>
+      <osSpecific>
+        <osType>any</osType>
+        <packages>
+          <package>
+            <type>tarball</type>
+            <name>files/${kafka.version}.tgz</name>
+          </package>
+        </packages>
+      </osSpecific>
+    </osSpecifics>
+
+  </application>
+</metainfo>

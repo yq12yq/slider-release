@@ -21,19 +21,13 @@ package org.apache.slider.funtest.lifecycle
 import groovy.transform.CompileStatic
 import groovy.util.logging.Slf4j
 import groovy.json.*
+import org.apache.hadoop.io.IOUtils
 import org.apache.hadoop.net.NetUtils
-import org.apache.hadoop.registry.client.binding.RegistryUtils
-import org.apache.hadoop.registry.client.types.Endpoint
-import org.apache.hadoop.registry.client.types.ServiceRecord
 import org.apache.hadoop.yarn.api.records.YarnApplicationState
 import org.apache.slider.common.SliderExitCodes
-import org.apache.slider.common.SliderKeys
-import org.apache.slider.common.SliderXmlConfKeys
 import org.apache.slider.common.params.Arguments
 import org.apache.slider.common.params.SliderActions
-import org.apache.slider.test.Outcome
-
-import static org.apache.slider.core.registry.info.CustomRegistryConstants.*
+import org.apache.slider.funtest.ResourcePaths
 import org.apache.slider.funtest.framework.AgentCommandTestBase
 import org.apache.slider.funtest.framework.FuntestProperties
 import org.apache.slider.funtest.framework.SliderShell
@@ -49,9 +43,9 @@ public class AgentPingSocketIT extends AgentCommandTestBase
 
   static String CLUSTER = "test-agent-ping-port"
 
-  static String APP_RESOURCE12 = "../slider-core/src/test/app_packages/test_min_pkg/nc_ping_cmd/resources.json"
-  static String APP_META12 = "../slider-core/src/test/app_packages/test_min_pkg/nc_ping_cmd/metainfo.json"
-  static String APP_TEMPLATE12 = "../slider-core/src/test/app_packages/test_min_pkg/nc_ping_cmd/appConfig.json"
+  static String APP_RESOURCE12 = ResourcePaths.PING_RESOURCES
+  static String APP_META12 = ResourcePaths.PING_META
+  static String APP_TEMPLATE12 = ResourcePaths.PING_APPCONFIG
 
 
   @Before
@@ -65,10 +59,10 @@ public class AgentPingSocketIT extends AgentCommandTestBase
   }
 
   @Test
-  public void testAgentRegistry() throws Throwable {
+  public void testAgentPingSocket() throws Throwable {
     describe("Create a cluster using metainfo, resources, and appConfig that calls nc to listen on a port")
-    assumeNotWindows()
-    def clusterpath = buildClusterPath(CLUSTER)
+    assumeTestClusterNotWindows()
+    buildClusterPath(CLUSTER)
     File launchReportFile = createTempJsonFile();
 
     SliderShell shell = createSliderApplicationMinPkg(CLUSTER,
@@ -109,7 +103,10 @@ public class AgentPingSocketIT extends AgentCommandTestBase
 
     describe(outfile.absolutePath)
 
-    def result = new JsonSlurper().parseText(outfile.text)
+    def text = outfile.text
+    log.info("Registry data\n$text")
+
+    def result = new JsonSlurper().parseText(text)
     Map jsonResult = (Map) result
     List host_ports = (List)jsonResult.get("host_port")
     Map host_port = (Map)host_ports[0]
@@ -118,13 +115,16 @@ public class AgentPingSocketIT extends AgentCommandTestBase
     def host = tokens[0]
     def port = tokens[1].toInteger()
 
+    def socket = null
     try {
-      def socket = new Socket();
+      socket = new Socket();
       def addr = new InetSocketAddress(host, port)
       socket.connect(addr, 2000)
       socket.close()
     } catch (IOException e) {
       throw NetUtils.wrapException(host, port, "localhost", 0, e)
+    } finally {
+      IOUtils.closeSocket(socket)
     }
 
     //stop
