@@ -10,6 +10,8 @@ Changes only in Hortonworks github and not in slider-0.80.0-incubating.
     SLIDER-891 Add ability to set Slider AM launch environment during cluster create/start
     SLIDER-128 Support graceful stop of component instances
     SLIDER-777 Provide slider dependencies as a self contained versioned tarball
+    SLIDER-657 Introduce --force switch for slider destroy command (Sherry Guo via gourksaha)
+    SLIDER-1079 cache metainfo object in AgentClientProvider.  Contributed by Shanyu Zhao.
 
   BUG FIXES
 
@@ -28,4 +30,5 @@ Changes only in Hortonworks github and not in slider-0.80.0-incubating.
     SLIDER-911 remove surplus jax rs jsr311-api JAR
     SLIDER-931 Security permissions on set up ZK path are too lax
     SLIDER-916 Fix Docker related bugs
+    SLIDER-1088 Slider client getting UnknownHost exception trying to RPC to AM in different subdomain
 
