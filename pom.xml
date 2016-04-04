@@ -1459,6 +1459,29 @@
 
     <profile>
       <id>hwx-common</id>
+      <dependencies>
+        <dependency>
+          <groupId>datalakejars</groupId>
+          <artifactId>databasejarsa</artifactId>
+          <version>1.0</version>
+          <scope>system</scope>
+          <systemPath>/usr/lib/hdinsight-datalake/azure-datalake-store-1.4.jar</systemPath>
+        </dependency>
+        <dependency>
+          <groupId>datalakejars</groupId>
+          <artifactId>databasejarsb</artifactId>
+          <version>1.0</version>
+          <scope>system</scope>
+          <systemPath>/usr/lib/hdinsight-datalake/secure-azure-datalake-store-1.4.jar</systemPath>
+        </dependency>
+        <dependency>
+          <groupId>datalakejars</groupId>
+          <artifactId>databasejarsc</artifactId>
+          <version>1.0</version>
+          <scope>system</scope>
+          <systemPath>/usr/lib/hdinsight-datalake/oauth2-token-refresher-1.0.jar</systemPath>
+        </dependency>
+      </dependencies>
     </profile>
 
     <profile>
