@@ -1449,6 +1449,10 @@
 
     <profile>
       <id>hwx-common</id>
+    </profile>
+
+    <profile>
+      <id>hwx-adls</id>
       <dependencies>
         <dependency>
           <groupId>datalakejars</groupId>
