@@ -128,7 +128,7 @@ public class ApplicationWithAddonPackagesIT extends AgentCommandTestBase{
         APP_TEMPLATE,
         APP_RESOURCE2,
         [Arguments.ARG_ADDON, ADD_ON_PACKAGE_NO_COMPONENT_PKG_NAME, addOnPackageNoComponentPkgNameFilePath.toString()],
-        launchReportFile)
+        launchReportFile, false)
     CommandTestBase.THAW_WAIT_TIME = temp_holder;
 
     logShell(shell)

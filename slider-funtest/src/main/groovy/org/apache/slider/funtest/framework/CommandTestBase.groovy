@@ -721,7 +721,8 @@ abstract class CommandTestBase extends SliderTestUtils {
       String appTemplate,
       String resourceTemplate,
       List<String> extraArgs = [],
-      File launchReportFile = null) {
+      File launchReportFile = null,
+      boolean failOnError = true) {
 
     if (!launchReportFile) {
       launchReportFile = createTempJsonFile()
@@ -754,7 +755,8 @@ abstract class CommandTestBase extends SliderTestUtils {
         SLIDER_CONFIG.getTrimmed(SliderXmlConfKeys.KEY_KEYTAB_PRINCIPAL));
     commands.addAll(extraArgs)
     SliderShell shell = new SliderShell(commands)
-    if (0 != shell.execute()) {
+    int returnCode = shell.execute()
+    if (failOnError && 0 != returnCode) {
       // app has failed.
 
       // grab the app report of the last known instance of this app
