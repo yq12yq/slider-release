@@ -25,7 +25,6 @@ import com.sun.jersey.spi.inject.SingletonTypeInjectableProvider;
 import org.apache.slider.core.conf.MapOperations;
 import org.apache.slider.providers.agent.AgentKeys;
 import org.apache.slider.server.appmaster.web.WebAppApi;
-import org.apache.slider.server.appmaster.web.rest.RestPaths;
 import org.apache.slider.server.services.security.SecurityUtils;
 import org.mortbay.jetty.Connector;
 import org.mortbay.jetty.Server;
@@ -40,6 +39,7 @@ import javax.ws.rs.ext.Provider;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.net.BindException;
 import java.util.Set;
 
 /**
@@ -56,6 +56,8 @@ public class AgentWebApp implements Closeable {
     final String name;
     final String wsName;
     final WebAppApi application;
+    int port;
+    int securedPort;
     MapOperations configsMap;
 
     public Builder(String name, String wsName, WebAppApi application) {
@@ -69,6 +71,16 @@ public class AgentWebApp implements Closeable {
       return this;
     }
 
+    public Builder withPort (int port) {
+      this.port = port;
+      return this;
+    }
+
+    public Builder withSecuredPort (int securedPort) {
+      this.securedPort = securedPort;
+      return this;
+    }
+
     public AgentWebApp start() throws IOException {
       if (configsMap == null) {
         throw new IllegalStateException("No SSL Configuration Available");
@@ -79,12 +91,13 @@ public class AgentWebApp implements Closeable {
           new QueuedThreadPool(
               configsMap.getOptionInt("agent.threadpool.size.max", 25)));
       agentServer.setStopAtShutdown(true);
+      agentServer.setGracefulShutdown(1000);
 
-      SslSelectChannelConnector ssl1WayConnector = createSSLConnector(false);
+      SslSelectChannelConnector ssl1WayConnector = createSSLConnector(false, port);
       SslSelectChannelConnector ssl2WayConnector =
           createSSLConnector(Boolean.valueOf(
               configsMap.getOption(AgentKeys.KEY_AGENT_TWO_WAY_SSL_ENABLED,
-                                   "false")));
+                                   "false")), securedPort);
       agentServer.setConnectors(new Connector[]{ssl1WayConnector,
           ssl2WayConnector});
 
@@ -103,6 +116,7 @@ public class AgentWebApp implements Closeable {
       agentRoot.addServlet(agent, "/*");
 
       try {
+        openListeners();
         agentServer.start();
       } catch (IOException e) {
         LOG.error("Unable to start agent server", e);
@@ -119,7 +133,38 @@ public class AgentWebApp implements Closeable {
 
     }
 
-    private SslSelectChannelConnector createSSLConnector(boolean needClientAuth) {
+    private void openListeners() throws Exception {
+      // from HttpServer2.openListeners()
+      for (Connector listener : agentServer.getConnectors()) {
+        if (listener.getLocalPort() != -1) {
+          // This listener is either started externally or has been bound
+          continue;
+        }
+        int port = listener.getPort();
+        while (true) {
+          // jetty has a bug where you can't reopen a listener that previously
+          // failed to open w/o issuing a close first, even if the port is changed
+          try {
+            listener.close();
+            listener.open();
+            LOG.info("Jetty bound to port " + listener.getLocalPort());
+            break;
+          } catch (BindException ex) {
+            if (port == 0) {
+              BindException be = new BindException("Port in use: "
+                  + listener.getHost() + ":" + listener.getPort());
+              be.initCause(ex);
+              throw be;
+            }
+          }
+          // try the next port number
+          listener.setPort(++port);
+          Thread.sleep(100);
+        }
+      }
+    }
+
+    private SslSelectChannelConnector createSSLConnector(boolean needClientAuth, int port) {
       SslSelectChannelConnector sslConnector = new
           SslSelectChannelConnector();
 
@@ -135,6 +180,7 @@ public class AgentWebApp implements Closeable {
       sslConnector.setTruststoreType("PKCS12");
       sslConnector.setNeedClientAuth(needClientAuth);
 
+      sslConnector.setPort(port);
       sslConnector.setAcceptors(2);
       return sslConnector;
     }

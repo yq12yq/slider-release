@@ -30,6 +30,10 @@ import subprocess
 import shutil
 from resource_management.libraries.script import Script
 
+APPLICATION_STD_OUTPUT_LOG_FILE_PREFIX = 'application-'
+APPLICATION_STD_OUTPUT_LOG_FILE_FILE_TYPE = '.log'
+APPLICATION_STD_ERROR_LOG_FILE_PREFIX = 'application-'
+APPLICATION_STD_ERROR_LOG_FILE_FILE_TYPE = '.err'
 
 def _merge_env(env1, env2, merge_keys=['PYTHONPATH']):
   """
@@ -69,13 +73,23 @@ def _call_command(command, logoutput=False, cwd=None, env=None, wait_for_finish=
                   pid_file_name=None, poll_after=None):
   # TODO implement user
   Logger.info("Executing %s" % (command))
-  proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+  #adding redirecting stdout stderr to file
+  outfilename = APPLICATION_STD_OUTPUT_LOG_FILE_PREFIX + \
+                    str(pid_file_name) + APPLICATION_STD_OUTPUT_LOG_FILE_FILE_TYPE
+          
+  errfilename = APPLICATION_STD_ERROR_LOG_FILE_PREFIX + \
+                    str(pid_file_name) + APPLICATION_STD_ERROR_LOG_FILE_FILE_TYPE
+
+  stdoutFile = open(outfilename, 'w')
+  stderrFile = open(errfilename, 'w')
+  proc = subprocess.Popen(command, stdout = stdoutFile, stderr = stderrFile, universal_newlines = True,
                           cwd=cwd, env=env, shell=False)
   code = None
   logAnyway = False
   if not wait_for_finish:
     Logger.debug("No need to wait for the process to exit. Will leave the process running ...")
     code = 0
+    logAnyway = False
     if pid_file_name:
       Logger.debug("Writing the process id %s to file %s" % (str(proc.pid), pid_file_name))
       pidfile = open(pid_file_name, 'w')

@@ -25,6 +25,7 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.LocatedFileStatus;
@@ -176,9 +177,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FilenameFilter;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.InterruptedIOException;
 import java.io.PrintStream;
@@ -1355,6 +1358,36 @@ public class SliderClient extends AbstractSliderLaunchedService implements RunSe
     return EXIT_SUCCESS;
   }
 
+  private void createSummaryMetainfoFile(Path srcFile, Path destFile,
+      boolean overwrite) throws IOException {
+    FileSystem srcFs = srcFile.getFileSystem(getConfig());
+    try (InputStream inputStreamJson = SliderUtils
+        .getApplicationResourceInputStream(srcFs, srcFile, "metainfo.json");
+        InputStream inputStreamXml = SliderUtils
+            .getApplicationResourceInputStream(srcFs, srcFile, "metainfo.xml");) {
+      InputStream inputStream = null;
+      Path summaryFileInFs = null;
+      if (inputStreamJson != null) {
+        inputStream = inputStreamJson;
+        summaryFileInFs = new Path(destFile.getParent(), destFile.getName()
+            + ".metainfo.json");
+        log.info("Found JSON metainfo file in package");
+      } else if (inputStreamXml != null) {
+        inputStream = inputStreamXml;
+        summaryFileInFs = new Path(destFile.getParent(), destFile.getName()
+            + ".metainfo.xml");
+        log.info("Found XML metainfo file in package");
+      }
+      if (inputStream != null) {
+        try (FSDataOutputStream dataOutputStream = sliderFileSystem
+            .getFileSystem().create(summaryFileInFs, overwrite)) {
+          log.info("Creating summary metainfo file");
+          IOUtils.copy(inputStream, dataOutputStream);
+        }
+      }
+    }
+  }
+
   private int actionPackageInstall(ActionPackageArgs actionPackageArgs)
       throws YarnException, IOException {
     requireArgumentSet(Arguments.ARG_NAME, actionPackageArgs.name);
@@ -1375,6 +1408,7 @@ public class SliderClient extends AbstractSliderLaunchedService implements RunSe
     log.info("Installing package {} to {} (overwrite set to {})", srcFile,
         fileInFs, actionPackageArgs.replacePkg);
     fs.copyFromLocalFile(false, actionPackageArgs.replacePkg, srcFile, fileInFs);
+    createSummaryMetainfoFile(srcFile, fileInFs, actionPackageArgs.replacePkg);
 
     String destPathWithHomeDir = Path
         .getPathWithoutSchemeAndAuthority(fileInFs).toString();
@@ -1726,6 +1760,15 @@ public class SliderClient extends AbstractSliderLaunchedService implements RunSe
           userName, clusterName));
     }
     conf.global.putAll(newglobal);
+
+    for (String component : conf.components.keySet()) {
+      Map<String,String> newComponent = new HashMap<>();
+      for (Entry<String,String> entry : conf.components.get(component).entrySet()) {
+        newComponent.put(entry.getKey(), replaceTokens(entry.getValue(),
+            userName, clusterName));
+      }
+      conf.components.get(component).putAll(newComponent);
+    }
 
     Map<String,List<String>> newcred = new HashMap<>();
     for (Entry<String,List<String>> entry : conf.credentials.entrySet()) {
