@@ -79,6 +79,7 @@ implements FuntestProperties, Arguments, SliderExitCodes, SliderActions {
   }
 
   @Test
+  @Ignore("BUG-56965")
   public void testRetrieveCertificateStores() throws Throwable {
     cleanup(APPLICATION_NAME)
     File launchReportFile = createTempJsonFile();
