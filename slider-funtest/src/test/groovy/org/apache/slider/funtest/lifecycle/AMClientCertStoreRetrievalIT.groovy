@@ -35,6 +35,7 @@ import org.apache.slider.funtest.framework.FuntestProperties
 import org.apache.slider.funtest.framework.SliderShell
 import org.apache.slider.test.ContractTestUtils
 import org.junit.After
+import org.junit.Ignore
 import org.junit.Test
 
 import javax.net.ssl.TrustManager
