@@ -1,4 +1,4 @@
-Changes only in Hortonworks github and not in slider-0.90.2-incubating.
+Changes only in Hortonworks github and not in slider-0.91.0-incubating.
 
   INCOMPATIBLE CHANGES
 
