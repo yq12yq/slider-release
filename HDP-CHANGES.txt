@@ -7,4 +7,6 @@ Changes only in Hortonworks github and not in slider-0.91.0-incubating.
   IMPROVEMENTS
 
   BUG FIXES
+    SLIDER-942  Slider agent fails with SSL validation errors with python 2.7.9
+    SLIDER-1150 Slider app fails to start on AmazonLinux
 
