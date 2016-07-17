@@ -13,3 +13,4 @@ Changes only in Hortonworks github and not in slider-0.91.0-incubating.
     SLIDER-1153 Code issues - 14 null pointer deferences found (Jian He via gourksaha)
     SLIDER-1154 fix concurrent data access violations
     SLIDER-1145 work around hadoop 2.8 changes in DefaultResourceCalculator.normalize
+    SLIDER-1157 Code issues - integer handling issues
