@@ -8,6 +8,7 @@ Changes only in Hortonworks github and not in slider-0.91.0-incubating.
 
   BUG FIXES
     SLIDER-942  Slider agent fails with SSL validation errors with python 2.7.9
+    SLIDER-1129 completely remove dependency on commons-httpclient library from test code as well due to HADOOP-13382
     SLIDER-1145 work around hadoop 2.8 changes in DefaultResourceCalculator.normalize
     SLIDER-1150 Slider app fails to start on AmazonLinux
     SLIDER-1152 Resource leaks found in code
