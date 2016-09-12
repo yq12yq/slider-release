@@ -1459,7 +1459,7 @@
           <artifactId>databasejarsa</artifactId>
           <version>1.0</version>
           <scope>system</scope>
-          <systemPath>/usr/lib/hdinsight-datalake/azure-data-lake-store-sdk-2.0.2-SNAPSHOT.jar</systemPath>
+          <systemPath>/usr/lib/hdinsight-datalake/azure-data-lake-store-sdk-2.0.4-SNAPSHOT.jar</systemPath>
         </dependency>
         <dependency>
           <groupId>datalakejars</groupId>
