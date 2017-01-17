@@ -17,3 +17,4 @@ Changes only in Hortonworks github and not in slider-0.91.0-incubating.
     SLIDER-1156 OutstandingRequestTracker edits map while iterating over its entries
     SLIDER-1157 Code issues - integer handling issues
     SLIDER-1169 Slider not honoring zookeeper quorum values passed (Daniel Murnane via gourksaha)
+    SLIDER-1186 Slider incorrectly assumes that keytabs are provided for AM
