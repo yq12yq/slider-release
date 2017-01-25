@@ -19,3 +19,6 @@ Changes only in Hortonworks github and not in slider-0.91.0-incubating.
     SLIDER-1169 Slider not honoring zookeeper quorum values passed (Daniel Murnane via gourksaha)
     SLIDER-1182 Slider AM should wait forever for RM
     SLIDER-1183 Slider AM should not kill application if onError is called
+    SLIDER-1184 yarn.container.failure.threshold=0 is NOT honored (ctas582 via gourksaha)
+    SLIDER-1186 Slider incorrectly assumes that keytabs are provided for AM
+    SLIDER-1187 Create app diagnostics resource with placeholder for containers (live/dead)
