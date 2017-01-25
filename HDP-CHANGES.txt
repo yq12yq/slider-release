@@ -22,3 +22,5 @@ Changes only in Hortonworks github and not in slider-0.91.0-incubating.
     SLIDER-1184 yarn.container.failure.threshold=0 is NOT honored (ctas582 via gourksaha)
     SLIDER-1186 Slider incorrectly assumes that keytabs are provided for AM
     SLIDER-1187 Create app diagnostics resource with placeholder for containers (live/dead)
+    SLIDER-1188 Make AM agent heartbeat loss configurable / increase default
+    SLIDER-1189 Agent never connects to new AM if AM restart takes too long
