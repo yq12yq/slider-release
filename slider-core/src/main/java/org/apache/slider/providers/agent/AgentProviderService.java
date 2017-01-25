@@ -166,6 +166,7 @@ public class AgentProviderService extends AbstractProviderService implements
   private final Object syncLock = new Object();
   private final ComponentTagProvider tags = new ComponentTagProvider();
   private int heartbeatMonitorInterval = 0;
+  private int heartbeatLostInterval = 0;
   private AgentClientProvider clientProvider;
   private AtomicInteger taskId = new AtomicInteger(0);
   private volatile Metainfo metaInfo = null;
@@ -212,6 +213,7 @@ public class AgentProviderService extends AbstractProviderService implements
     super("AgentProviderService");
     setAgentRestOperations(this);
     setHeartbeatMonitorInterval(DEFAULT_HEARTBEAT_MONITOR_INTERVAL);
+    setHeartbeatLostInterval(DEFAULT_HEARTBEAT_LOST_INTERVAL);
   }
 
   @Override
@@ -293,7 +295,8 @@ public class AgentProviderService extends AbstractProviderService implements
           }
           commandOrder = new ComponentCommandOrder(metaInfo.getApplication().getCommandOrders());
           defaultConfigs = initializeDefaultConfigs(fileSystem, appDef, metaInfo);
-          monitor = new HeartbeatMonitor(this, getHeartbeatMonitorInterval());
+          monitor = new HeartbeatMonitor(this, getHeartbeatMonitorInterval(),
+              getHeartbeatLostInterval());
           monitor.start();
 
           // build a map from component to metainfo
@@ -1304,7 +1307,8 @@ public class AgentProviderService extends AbstractProviderService implements
   }
 
   /**
-   * Reads and sets the heartbeat monitoring interval. If bad value is provided then log it and set to default.
+   * Reads and sets the heartbeat monitoring interval and heartbeat lost
+   * interval. If bad value is provided then log it and set to default.
    *
    * @param instanceDefinition
    */
@@ -1320,6 +1324,18 @@ public class AgentProviderService extends AbstractProviderService implements
           hbMonitorInterval,
           HEARTBEAT_MONITOR_INTERVAL,
           DEFAULT_HEARTBEAT_MONITOR_INTERVAL);
+    }
+    String hbLostInterval = instanceDefinition.getAppConfOperations().
+        getGlobalOptions().getOption(AgentKeys.HEARTBEAT_LOST_INTERVAL,
+        Integer.toString(DEFAULT_HEARTBEAT_LOST_INTERVAL));
+    try {
+      setHeartbeatLostInterval(Integer.parseInt(hbLostInterval));
+    } catch (NumberFormatException e) {
+      log.warn(
+          "Bad value {} for {}. Defaulting to ",
+          hbLostInterval,
+          HEARTBEAT_LOST_INTERVAL,
+          DEFAULT_HEARTBEAT_LOST_INTERVAL);
     }
   }
 
@@ -1372,6 +1388,11 @@ public class AgentProviderService extends AbstractProviderService implements
     this.heartbeatMonitorInterval = heartbeatMonitorInterval;
   }
 
+  @VisibleForTesting
+  protected void setHeartbeatLostInterval(int heartbeatLostInterval) {
+    this.heartbeatLostInterval = heartbeatLostInterval;
+  }
+
   public void setInUpgradeMode(boolean inUpgradeMode) {
     this.isInUpgradeMode = inUpgradeMode;
   }
@@ -1422,6 +1443,10 @@ public class AgentProviderService extends AbstractProviderService implements
 
   private int getHeartbeatMonitorInterval() {
     return this.heartbeatMonitorInterval;
+  }
+
+  private int getHeartbeatLostInterval() {
+    return this.heartbeatLostInterval;
   }
 
   private String getClusterName() {
