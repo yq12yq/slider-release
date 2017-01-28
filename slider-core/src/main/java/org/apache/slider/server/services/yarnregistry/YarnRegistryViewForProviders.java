@@ -29,6 +29,8 @@ import org.apache.hadoop.registry.client.binding.RegistryPathUtils;
 
 import org.apache.hadoop.registry.client.types.ServiceRecord;
 import org.apache.slider.common.tools.SliderUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
@@ -44,7 +46,8 @@ public class YarnRegistryViewForProviders {
   private final RegistryOperations registryOperations;
 
   private final String user;
-
+  private static final Logger log =
+      LoggerFactory.getLogger(YarnRegistryViewForProviders.class);
   private final String sliderServiceClass;
   private final String instanceName;
   private final ApplicationAttemptId applicationAttemptId;
@@ -185,6 +188,7 @@ public class YarnRegistryViewForProviders {
     if (deleteTreeFirst) {
       registryOperations.delete(path, true);
     }
+    log.info("Adding a service at path: " + path);
     registryOperations.mknode(RegistryPathUtils.parentOf(path), true);
     registryOperations.bind(path, record, BindFlags.OVERWRITE);
     return path;
@@ -210,8 +214,6 @@ public class YarnRegistryViewForProviders {
 
   /**
    * Add a service under a path for the current user
-   * @param serviceClass service class to use under ~user
-   * @param serviceName name of the service
    * @param record service record
    * @param deleteTreeFirst perform recursive delete of the path first
    * @return the path the service was created at

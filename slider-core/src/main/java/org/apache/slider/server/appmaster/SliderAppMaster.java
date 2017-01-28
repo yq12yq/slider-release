@@ -20,9 +20,6 @@ package org.apache.slider.server.appmaster;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.health.HealthCheckRegistry;
-import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
-import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
-import com.codahale.metrics.jvm.ThreadStatesGaugeSet;
 import com.google.common.base.Preconditions;
 import com.google.protobuf.BlockingService;
 
@@ -759,9 +756,26 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
       appInformation.put(StatusKeys.INFO_AM_HOSTNAME, appMasterHostname);
       appInformation.set(StatusKeys.INFO_AM_RPC_PORT, appMasterRpcPort);
 
+
       log.info("Starting Yarn registry");
-      registryOperations = startRegistryOperationsService();
-      log.info(registryOperations.toString());
+
+      String keytabLoc = null;
+      if (securityEnabled && securityConfiguration.isKeytabProvided()) {
+        keytabLoc = securityConfiguration.getKeytabFile(instanceDefinition)
+            .getAbsolutePath();
+        // perform keytab based login to establish kerberos authenticated
+        // principal.  Can do so now since AM registration with RM above required
+        // tokens associated to principal
+        String principal = securityConfiguration.getPrincipal();
+        File localKeytabFile = securityConfiguration.getKeytabFile(instanceDefinition);
+        // Now log in...
+        login(principal, localKeytabFile);
+        log.info("Using kerberosPrincipal = " + principal + ", keytab = "
+            + keytabLoc);
+      }
+      registryOperations =
+          startRegistryOperationsService(securityConfiguration.getPrincipal(),
+              keytabLoc);
 
       //build the role map
       List<ProviderRole> providerRoles = new ArrayList<>(providerService.getRoles());
@@ -843,13 +857,6 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
         rpcService.getServer().refreshServiceAcl(serviceConf,
             new SliderAMPolicyProvider());
         if (securityConfiguration.isKeytabProvided()) {
-          // perform keytab based login to establish kerberos authenticated
-          // principal.  Can do so now since AM registration with RM above required
-          // tokens associated to principal
-          String principal = securityConfiguration.getPrincipal();
-          File localKeytabFile = securityConfiguration.getKeytabFile(instanceDefinition);
-          // Now log in...
-          login(principal, localKeytabFile);
           // obtain new FS reference that should be kerberos based and different
           // than the previously cached reference
           fs = new SliderFileSystem(serviceConf);

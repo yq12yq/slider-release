@@ -178,7 +178,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FilenameFilter;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -4332,7 +4331,7 @@ public class SliderClient extends AbstractSliderLaunchedService implements RunSe
       throws SliderException, IOException {
 
     if (registryOperations == null) {
-      registryOperations = startRegistryOperationsService();
+      registryOperations = startRegistryOperationsService(null, null);
     }
     return registryOperations;
   }

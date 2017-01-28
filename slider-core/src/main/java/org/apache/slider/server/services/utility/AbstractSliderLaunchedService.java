@@ -18,9 +18,11 @@
 
 package org.apache.slider.server.services.utility;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.registry.client.api.RegistryConstants;
 import org.apache.hadoop.registry.client.api.RegistryOperations;
 import org.apache.hadoop.registry.client.api.RegistryOperationsFactory;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.slider.common.tools.ConfigHelper;
 import org.apache.slider.common.tools.SliderUtils;
@@ -29,6 +31,8 @@ import org.apache.slider.core.exceptions.BadConfigException;
 import org.apache.slider.core.zk.ZookeeperUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.hadoop.registry.client.api.RegistryConstants.KEY_REGISTRY_USER_ACCOUNTS;
 
 /**
  * Base service for the standard slider client/server services
@@ -70,13 +74,12 @@ public abstract class AbstractSliderLaunchedService extends
    * @return the registry operations service, already deployed as a child
    * of the AbstractSliderLaunchedService instance.
    */
-  public RegistryOperations startRegistryOperationsService()
-      throws BadConfigException {
+  public RegistryOperations startRegistryOperationsService(String principal,
+      String keytab) throws BadConfigException {
 
     // push back the slider registry entry if needed
-    String quorum = lookupZKQuorum();
     RegistryOperations registryWriterService =
-        createRegistryOperationsInstance();
+        createRegistryOperationsInstance(principal, keytab);
     deployChildService(registryWriterService);
     return registryWriterService;
   }
@@ -86,9 +89,20 @@ public abstract class AbstractSliderLaunchedService extends
    * subclasses to instantiate a subclass service
    * @return an instance to match to the lifecycle of this service
    */
-  protected RegistryOperations createRegistryOperationsInstance() {
-    return RegistryOperationsFactory.createInstance("YarnRegistry", getConfig());
+  protected RegistryOperations createRegistryOperationsInstance(
+      String principal, String keytab) {
+    if (UserGroupInformation.isSecurityEnabled() && principal != null
+        && keytab != null) {
+      Configuration conf = getConfig();
+      conf.set(KEY_REGISTRY_USER_ACCOUNTS, "sasl:" + principal);
+      return RegistryOperationsFactory
+          .createKerberosInstance(conf, "Client", principal, keytab);
+    } else {
+      return RegistryOperationsFactory
+          .createInstance("YarnRegistry", getConfig());
+    }
   }
+
 
   /**
    * Utility method to require an argument to be set (non null, non-empty)
