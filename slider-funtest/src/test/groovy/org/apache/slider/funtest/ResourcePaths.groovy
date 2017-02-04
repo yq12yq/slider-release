@@ -38,4 +38,16 @@ interface ResourcePaths {
   String SLEEP_META = "$SLIDER_CORE_APP_PACKAGES/test_min_pkg/sleep_cmd/metainfo.json"
   String SLEEP_APPCONFIG = "$SLIDER_CORE_APP_PACKAGES/test_min_pkg/sleep_cmd/appConfig.json"
 
+  String AM_CONFIG_RESOURCES = "$SLIDER_CORE_APP_PACKAGES/test_am_config/resources.json"
+  String AM_CONFIG_META = "$SLIDER_CORE_APP_PACKAGES/test_am_config/metainfo.json"
+  String AM_CONFIG_APPCONFIG = "$SLIDER_CORE_APP_PACKAGES/test_am_config/appConfig.json"
+
+  String UNIQUE_COMPONENT_RESOURCES = "$SLIDER_CORE_APP_PACKAGES/test_command_log/resources_unique_names.json"
+
+  String EXTERNAL_RESOURCES = "$SLIDER_CORE_APP_PACKAGES/test_min_pkg/sleep_cmd/resources_external_component.json"
+  String EXTERNAL_APPCONFIG = "$SLIDER_CORE_APP_PACKAGES/test_min_pkg/sleep_cmd/appConfig_external_component.json"
+
+  String NESTED_RESOURCES = "$SLIDER_CORE_APP_PACKAGES/test_min_pkg/sleep_cmd/resources_external_component_nested.json"
+  String NESTED_META = "$SLIDER_CORE_APP_PACKAGES/test_min_pkg/sleep_cmd/metainfo_external_component_nested.json"
+  String NESTED_APPCONFIG = "$SLIDER_CORE_APP_PACKAGES/test_min_pkg/sleep_cmd/appConfig_external_component_nested.json"
 }

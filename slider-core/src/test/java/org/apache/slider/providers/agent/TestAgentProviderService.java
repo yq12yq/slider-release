@@ -88,11 +88,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -151,10 +153,6 @@ public class TestAgentProviderService {
                                                + "        <commandOrder>\n"
                                                + "          <command>HBASE_REGIONSERVER-START</command>\n"
                                                + "          <requires>HBASE_MASTER-STARTED</requires>\n"
-                                               + "        </commandOrder>\n"
-                                               + "        <commandOrder>\n"
-                                               + "          <command>A-START</command>\n"
-                                               + "          <requires>B-STARTED</requires>\n"
                                                + "        </commandOrder>\n"
                                                + "      </commandOrders>\n"
                                                + "      <components>\n"
@@ -285,6 +283,7 @@ public class TestAgentProviderService {
     ProviderRole role = new ProviderRole("HBASE_MASTER", 1);
     SliderFileSystem sliderFileSystem = createNiceMock(SliderFileSystem.class);
     ContainerLauncher launcher = createNiceMock(ContainerLauncher.class);
+    expect(launcher.getEnv()).andReturn(new MapOperations()).anyTimes();
     Path generatedConfPath = new Path(".", "test");
     MapOperations resourceComponent = new MapOperations();
     MapOperations appComponent = new MapOperations();
@@ -347,6 +346,9 @@ public class TestAgentProviderService {
                                                  anyString(),
                                                  anyString()
     );
+
+    doReturn(Collections.emptyMap()).when(mockAps).getRoleClusterNodeMapping();
+
     expect(access.isApplicationLive()).andReturn(true).anyTimes();
     ClusterDescription desc = new ClusterDescription();
     desc.setOption(OptionKeys.ZOOKEEPER_QUORUM, "host1:2181");
@@ -357,16 +359,15 @@ public class TestAgentProviderService {
     expect(access.getRoleClusterNodeMapping()).andReturn(cnMap).anyTimes();
 
 
-    AggregateConf aggConf = new AggregateConf();
-    ConfTreeOperations treeOps = aggConf.getAppConfOperations();
+    ConfTreeOperations treeOps = instanceDefinition.getAppConfOperations();
     treeOps.getOrAddComponent("HBASE_MASTER").put(AgentKeys.WAIT_HEARTBEAT, "0");
     treeOps.set(OptionKeys.APPLICATION_NAME, "HBASE");
     treeOps.set("site.fs.defaultFS", "hdfs://HOST1:8020/");
     treeOps.set("internal.data.dir.path", "hdfs://HOST1:8020/database");
-    expect(access.getInstanceDefinitionSnapshot()).andReturn(aggConf);
+    expect(access.getInstanceDefinitionSnapshot()).andReturn(instanceDefinition);
     expect(access.getInternalsSnapshot()).andReturn(treeOps).anyTimes();
     expect(access.getAppConfSnapshot()).andReturn(treeOps).anyTimes();
-    replay(access, ctx, container, sliderFileSystem, mockFs);
+    replay(access, ctx, container, sliderFileSystem, mockFs, launcher);
 
     try {
       mockAps.buildContainerLaunchContext(launcher,
@@ -434,6 +435,11 @@ public class TestAgentProviderService {
         .put(AgentKeys.AGENT_CONF, ".");
     instanceDefinition.getAppConfOperations().getGlobalOptions()
         .put(AgentKeys.AGENT_VERSION, ".");
+
+    instanceDefinition.getResourceOperations().getOrAddComponent(
+        "HBASE_MASTER");
+    instanceDefinition.getResourceOperations().getOrAddComponent(
+        "HBASE_REGIONSERVER");
     return instanceDefinition;
   }
 
@@ -471,7 +477,7 @@ public class TestAgentProviderService {
     metainfo.setApplication(application);
     doReturn(metainfo).when(mockAps).getApplicationMetainfo(
         any(SliderFileSystem.class), anyString());
-    doReturn(metainfo).when(mockAps).getMetaInfo();
+    doReturn(metainfo).when(mockAps).getMetaInfo(anyString());
 
 
 
@@ -530,13 +536,7 @@ public class TestAgentProviderService {
     assertNotNull(registryViewForProviders);
 
     ContainerLaunchContext ctx = createNiceMock(ContainerLaunchContext.class);
-    AggregateConf instanceDefinition = new AggregateConf();
-
-    instanceDefinition.setInternal(tree);
-    instanceDefinition.setAppConf(tree);
-    instanceDefinition.getAppConfOperations().getGlobalOptions().put(AgentKeys.APP_DEF, ".");
-    instanceDefinition.getAppConfOperations().getGlobalOptions().put(AgentKeys.AGENT_CONF, ".");
-    instanceDefinition.getAppConfOperations().getGlobalOptions().put(AgentKeys.AGENT_VERSION, ".");
+    AggregateConf instanceDefinition = prepareConfForAgentStateTests();
 
     Container container = createNiceMock(Container.class);
     ProviderRole role_hm = new ProviderRole("HBASE_MASTER", 1);
@@ -664,7 +664,7 @@ public class TestAgentProviderService {
     hbaseMaster.setName("HBASE_MASTER");
     application.addComponent(hbaseMaster);
     metainfo.setApplication(application);
-    doReturn(metainfo).when(mockAps).getMetaInfo();
+    doReturn(metainfo).when(mockAps).getMetaInfo(anyString());
     doReturn(metainfo).when(mockAps).getApplicationMetainfo(
         any(SliderFileSystem.class), anyString(), anyBoolean());
 
@@ -679,7 +679,7 @@ public class TestAgentProviderService {
     reg.setActualState(State.STARTED);
 
     mockAps.initializeApplicationConfiguration(instanceDefinition,
-        null);
+        null, null);
 
     RegistrationResponse resp = mockAps.handleRegistration(reg);
     Assert.assertEquals(0, resp.getResponseId());
@@ -735,7 +735,7 @@ public class TestAgentProviderService {
     metainfo.setApplication(application);
     doReturn(metainfo).when(mockAps).getApplicationMetainfo(
         any(SliderFileSystem.class), anyString(), anyBoolean());
-    doReturn(metainfo).when(mockAps).getMetaInfo();
+    doReturn(metainfo).when(mockAps).getMetaInfo(anyString());
     doNothing().when(mockAps).addRoleRelatedTokens(anyMap());
 
     Register reg = new Register();
@@ -748,7 +748,7 @@ public class TestAgentProviderService {
     // Simulating agent in INSTALLED state
     reg.setActualState(State.INSTALLED);
 
-    mockAps.initializeApplicationConfiguration(instanceDefinition, null);
+    mockAps.initializeApplicationConfiguration(instanceDefinition, null, "HBASE_MASTER");
 
     RegistrationResponse resp = mockAps.handleRegistration(reg);
     Assert.assertEquals(0, resp.getResponseId());
@@ -853,7 +853,7 @@ public class TestAgentProviderService {
     AgentProviderService aps = createAgentProviderService(new Configuration());
     AgentProviderService mockAps = Mockito.spy(aps);
     doNothing().when(mockAps).publishApplicationInstanceData(anyString(), anyString(), anyCollection());
-    doReturn(metainfo).when(mockAps).getMetaInfo();
+    doReturn(metainfo).when(mockAps).getMetaInfo(anyString());
 
     Map<String, String> ports = new HashMap<String, String>();
     ports.put("global.listen_port", "10010");
@@ -892,11 +892,13 @@ public class TestAgentProviderService {
     AgentProviderService aps = createAgentProviderService(new Configuration());
     AgentProviderService mockAps = Mockito.spy(aps);
     doNothing().when(mockAps).publishApplicationInstanceData(anyString(), anyString(), anyCollection());
-    doReturn(metainfo).when(mockAps).getMetaInfo();
+    doReturn(metainfo).when(mockAps).getMetaInfo(anyString());
     StateAccessForProviders access = createNiceMock(StateAccessForProviders.class);
     doReturn(access).when(mockAps).getAmState();
     PublishedExportsSet pubExpSet = new PublishedExportsSet();
     expect(access.getPublishedExportsSet()).andReturn(pubExpSet).anyTimes();
+    expect(access.getAppConfSnapshot()).andReturn(new ConfTreeOperations(
+        new ConfTree())).anyTimes();
     replay(access);
 
     Map<String, String> ports = new HashMap<String, String>();
@@ -1005,12 +1007,14 @@ public class TestAgentProviderService {
         new MockContainerId(1), "cid");
     AgentProviderService mockAps = Mockito.spy(aps);
     doNothing().when(mockAps).publishApplicationInstanceData(anyString(), anyString(), anyCollection());
-    doReturn(metainfo).when(mockAps).getMetaInfo();
+    doReturn(metainfo).when(mockAps).getMetaInfo(anyString());
     doReturn(roleClusterNodeMap).when(mockAps).getRoleClusterNodeMapping();
     StateAccessForProviders access = createNiceMock(StateAccessForProviders.class);
     doReturn(access).when(mockAps).getAmState();
     PublishedExportsSet pubExpSet = new PublishedExportsSet();
     expect(access.getPublishedExportsSet()).andReturn(pubExpSet).anyTimes();
+    expect(access.getAppConfSnapshot()).andReturn(new ConfTreeOperations(
+        new ConfTree())).anyTimes();
     replay(access);
 
     mockAps.publishConfigAndExportGroups(hb, componentStatus, "HBASE_MASTER");
@@ -1116,19 +1120,15 @@ public class TestAgentProviderService {
     Assert.assertEquals(found, 2);
 
     List<CommandOrder> cmdOrders = application.getCommandOrders();
-    Assert.assertEquals(cmdOrders.size(), 2);
+    Assert.assertEquals(cmdOrders.size(), 1);
     found = 0;
     for (CommandOrder co : application.getCommandOrders()) {
       if (co.getCommand().equals("HBASE_REGIONSERVER-START")) {
         Assert.assertTrue(co.getRequires().equals("HBASE_MASTER-STARTED"));
         found++;
       }
-      if (co.getCommand().equals("A-START")) {
-        Assert.assertEquals(co.getRequires(), "B-STARTED");
-        found++;
-      }
     }
-    Assert.assertEquals(found, 2);
+    Assert.assertEquals(found, 1);
 
     List<ConfigFile> configFiles = application.getConfigFiles();
     Assert.assertEquals(configFiles.size(), 2);
@@ -1149,7 +1149,7 @@ public class TestAgentProviderService {
 
     AgentProviderService aps = createAgentProviderService(new Configuration());
     AgentProviderService mockAps = Mockito.spy(aps);
-    doReturn(metainfo).when(mockAps).getMetaInfo();
+    doReturn(metainfo).when(mockAps).getMetaInfo(anyString());
     CommandScript script = mockAps.getScriptPathForMasterPackage("HBASE_MASTER");
     Assert.assertEquals(script.getScript(), "scripts/hbase_master.py");
 
@@ -1178,22 +1178,24 @@ public class TestAgentProviderService {
 
     AgentProviderService aps1 = createAgentProviderService(new Configuration());
     AgentProviderService mockAps = Mockito.spy(aps1);
-    doReturn(metainfo).when(mockAps).getMetaInfo();
+    doReturn(metainfo).when(mockAps).getMetaInfo(anyString());
 
     AgentProviderService mockAps2 = Mockito.spy(aps1);
-    doReturn(metainfo2).when(mockAps2).getMetaInfo();
+    doReturn(metainfo2).when(mockAps2).getMetaInfo(anyString());
 
     Assert.assertTrue(mockAps.isMaster(role_hm));
     Assert.assertFalse(mockAps.isMaster(role_hrs));
     Assert.assertTrue(mockAps.canPublishConfig(role_hm));
     Assert.assertFalse(mockAps.canPublishConfig(role_hrs));
-    Assert.assertTrue(mockAps.canAnyMasterPublishConfig());
+    Assert.assertTrue(mockAps.canAnyMasterPublishConfig(role_hm));
+    Assert.assertTrue(mockAps.canAnyMasterPublishConfig(role_hrs));
 
     Assert.assertTrue(mockAps2.isMaster(role_hm));
     Assert.assertFalse(mockAps2.isMaster(role_hrs));
     Assert.assertTrue(mockAps2.canPublishConfig(role_hm));
     Assert.assertFalse(mockAps2.canPublishConfig(role_hrs));
-    Assert.assertTrue(mockAps2.canAnyMasterPublishConfig());
+    Assert.assertTrue(mockAps2.canAnyMasterPublishConfig(role_hm));
+    Assert.assertTrue(mockAps2.canAnyMasterPublishConfig(role_hrs));
   }
 
   @Test
@@ -1202,8 +1204,6 @@ public class TestAgentProviderService {
     // Start of HBASE_RS depends on the start of HBASE_MASTER
     InputStream metainfo_1 = new ByteArrayInputStream(metainfo_1_str.getBytes());
     Metainfo metainfo = new MetainfoParser().fromXmlStream(metainfo_1);
-    ConfTree tree = new ConfTree();
-    tree.global.put(InternalKeys.INTERNAL_APPLICATION_IMAGE_PATH, ".");
 
     Configuration conf = new Configuration();
     AgentProviderService aps = createAgentProviderService(conf);
@@ -1211,13 +1211,7 @@ public class TestAgentProviderService {
     assertNotNull(registryViewForProviders);
     
     ContainerLaunchContext ctx = createNiceMock(ContainerLaunchContext.class);
-    AggregateConf instanceDefinition = new AggregateConf();
-
-    instanceDefinition.setInternal(tree);
-    instanceDefinition.setAppConf(tree);
-    instanceDefinition.getAppConfOperations().getGlobalOptions().put(AgentKeys.APP_DEF, ".");
-    instanceDefinition.getAppConfOperations().getGlobalOptions().put(AgentKeys.AGENT_CONF, ".");
-    instanceDefinition.getAppConfOperations().getGlobalOptions().put(AgentKeys.AGENT_VERSION, ".");
+    AggregateConf instanceDefinition = prepareConfForAgentStateTests();
 
     Container container = createNiceMock(Container.class);
     ProviderRole role_hm = new ProviderRole("HBASE_MASTER", 1);
@@ -1225,6 +1219,8 @@ public class TestAgentProviderService {
     SliderFileSystem sliderFileSystem = createNiceMock(SliderFileSystem.class);
     ContainerLauncher launcher = createNiceMock(ContainerLauncher.class);
     ContainerLauncher launcher2 = createNiceMock(ContainerLauncher.class);
+    expect(launcher.getEnv()).andReturn(new MapOperations()).anyTimes();
+    expect(launcher2.getEnv()).andReturn(new MapOperations()).anyTimes();
     Path generatedConfPath = new Path(".", "test");
     MapOperations resourceComponent = new MapOperations();
     MapOperations appComponent = new MapOperations();
@@ -1291,18 +1287,28 @@ public class TestAgentProviderService {
     desc.setInfo(OptionKeys.APPLICATION_NAME, "HBASE");
     expect(access.getClusterStatus()).andReturn(desc).anyTimes();
 
-    AggregateConf aggConf = new AggregateConf();
-    ConfTreeOperations treeOps = aggConf.getAppConfOperations();
+    ConfTreeOperations treeOps = instanceDefinition.getAppConfOperations();
     treeOps.getOrAddComponent("HBASE_MASTER").put(AgentKeys.WAIT_HEARTBEAT, "0");
-    treeOps.getOrAddComponent("HBASE_REGIONSERVER").put(AgentKeys.WAIT_HEARTBEAT, "0");
+    treeOps.getOrAddComponent("HBASE_REGIONSERVER").put(
+        AgentKeys.WAIT_HEARTBEAT, "0");
     treeOps.set(OptionKeys.APPLICATION_NAME, "HBASE");
     treeOps.set("site.fs.defaultFS", "hdfs://HOST1:8020/");
     treeOps.set("internal.data.dir.path", "hdfs://HOST1:8020/database");
-    expect(access.getInstanceDefinitionSnapshot()).andReturn(aggConf).anyTimes();
+    expect(access.getInstanceDefinitionSnapshot()).andReturn(instanceDefinition).anyTimes();
     expect(access.getInternalsSnapshot()).andReturn(treeOps).anyTimes();
     expect(access.getAppConfSnapshot()).andReturn(treeOps).anyTimes();
-    doNothing().when(mockAps).publishApplicationInstanceData(anyString(), anyString(), anyCollection());
-    replay(access, ctx, container, sliderFileSystem, mockFs);
+    doNothing().when(mockAps).publishApplicationInstanceData(anyString(),
+        anyString(), anyCollection());
+    doNothing().when(mockAps).localizeConfigFiles(
+        (ContainerLauncher)Matchers.anyObject(),
+        anyString(),
+        anyString(),
+        (Metainfo)Matchers.anyObject(),
+        anyMap(),
+        (MapOperations)Matchers.anyObject(),
+        (SliderFileSystem)Matchers.anyObject());
+    doReturn(Collections.emptyMap()).when(mockAps).getRoleClusterNodeMapping();
+    replay(access, ctx, container, sliderFileSystem, mockFs, launcher, launcher2);
 
     // build two containers
     try {
@@ -1628,8 +1634,8 @@ public class TestAgentProviderService {
     expect(access.isApplicationLive()).andReturn(true).anyTimes();
 
     doReturn("HOST1").when(mockAps).getClusterInfoPropertyValue(anyString());
-    doReturn(metainfo).when(mockAps).getMetaInfo();
-    doReturn(new HashMap<String, DefaultConfig>()).when(mockAps).getDefaultConfigs();
+    doReturn(metainfo).when(mockAps).getMetaInfo(anyString());
+    doReturn(new HashMap<String, DefaultConfig>()).when(mockAps).getDefaultConfigs(anyString());
 
     Map<String, Map<String, ClusterNode>> roleClusterNodeMap = new HashMap<String, Map<String, ClusterNode>>();
     Map<String, ClusterNode> container = new HashMap<String, ClusterNode>();
@@ -1695,7 +1701,7 @@ public class TestAgentProviderService {
     expect(access.isApplicationLive()).andReturn(true).anyTimes();
 
     doReturn("HOST1").when(mockAps).getClusterInfoPropertyValue(anyString());
-    doReturn(defaultConfigMap).when(mockAps).getDefaultConfigs();
+    doReturn(defaultConfigMap).when(mockAps).getDefaultConfigs(anyString());
     List<String> configurations = new ArrayList<String>();
     configurations.add("hbase-site");
     configurations.add("global");
@@ -1783,7 +1789,7 @@ public class TestAgentProviderService {
     expect(access.isApplicationLive()).andReturn(true).anyTimes();
 
     doReturn("HOST1").when(mockAps).getClusterInfoPropertyValue(anyString());
-    doReturn(defaultConfigMap).when(mockAps).getDefaultConfigs();
+    doReturn(defaultConfigMap).when(mockAps).getDefaultConfigs(anyString());
     List<String> configurations = new ArrayList<String>();
     configurations.add("hbase-site");
     configurations.add("global");
@@ -1849,12 +1855,12 @@ public class TestAgentProviderService {
     AgentProviderService aps = createAgentProviderService(new Configuration());
     Map<String, Map<String, String>> allConfigs = new HashMap<String, Map<String, String>>();
     Map<String, String> cfg1 = new HashMap<String, String>();
-    cfg1.put("a1", "${@//site/cfg-2/A1}");
+    cfg1.put("a1", "0${@//site/cfg-2/A1}");
     cfg1.put("b1", "22");
     cfg1.put("c1", "33");
     cfg1.put("d1", "${@//site/cfg1/c1}AA");
     Map<String, String> cfg2 = new HashMap<String, String>();
-    cfg2.put("A1", "11");
+    cfg2.put("A1", "11${@//site/cfg1/b1}");
     cfg2.put("B1", "${@//site/cfg-2/A1},${@//site/cfg-2/A1},AA,${@//site/cfg1/c1}");
     cfg2.put("C1", "DD${@//site/cfg1/c1}");
     cfg2.put("D1", "${14}");
@@ -1862,15 +1868,30 @@ public class TestAgentProviderService {
     allConfigs.put("cfg1", cfg1);
     allConfigs.put("cfg-2", cfg2);
     aps.dereferenceAllConfigs(allConfigs);
-    Assert.assertEquals("11", cfg1.get("a1"));
+    Assert.assertEquals("01122", cfg1.get("a1"));
     Assert.assertEquals("22", cfg1.get("b1"));
     Assert.assertEquals("33", cfg1.get("c1"));
     Assert.assertEquals("33AA", cfg1.get("d1"));
 
-    Assert.assertEquals("11", cfg2.get("A1"));
-    Assert.assertEquals("11,11,AA,33", cfg2.get("B1"));
+    Assert.assertEquals("1122", cfg2.get("A1"));
+    Assert.assertEquals("1122,1122,AA,33", cfg2.get("B1"));
     Assert.assertEquals("DD33", cfg2.get("C1"));
     Assert.assertEquals("${14}", cfg2.get("D1"));
   }
 
+  @Test
+  public void testDereferenceAllConfigLoop() throws IOException {
+    AgentProviderService aps = createAgentProviderService(new Configuration());
+    Map<String, Map<String, String>> allConfigs = new HashMap<String, Map<String, String>>();
+    Map<String, String> cfg1 = new HashMap<String, String>();
+    cfg1.put("a1", "0${@//site/cfg-2/A1}");
+    Map<String, String> cfg2 = new HashMap<String, String>();
+    cfg2.put("A1", "11${@//site/cfg1/a1}");
+
+    allConfigs.put("cfg1", cfg1);
+    allConfigs.put("cfg-2", cfg2);
+    aps.dereferenceAllConfigs(allConfigs);
+    Assert.assertEquals("0${@//site/cfg-2/A1}", cfg1.get("a1"));
+    Assert.assertEquals("11${@//site/cfg1/a1}", cfg2.get("A1"));
+  }
 }

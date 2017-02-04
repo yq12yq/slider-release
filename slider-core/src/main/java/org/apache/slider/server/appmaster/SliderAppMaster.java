@@ -24,6 +24,7 @@ import com.google.common.base.Preconditions;
 import com.google.protobuf.BlockingService;
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.Path;
@@ -68,6 +69,7 @@ import static org.apache.hadoop.yarn.conf.YarnConfiguration.*;
 import static org.apache.slider.common.Constants.HADOOP_JAAS_DEBUG;
 
 import org.apache.hadoop.yarn.exceptions.InvalidApplicationMasterRequestException;
+import org.apache.hadoop.yarn.exceptions.InvalidResourceRequestException;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.ipc.YarnRPC;
 import org.apache.hadoop.registry.client.api.RegistryOperations;
@@ -127,6 +129,7 @@ import org.apache.slider.providers.agent.AgentKeys;
 import org.apache.slider.providers.agent.AgentProviderService;
 import org.apache.slider.providers.slideram.SliderAMClientProvider;
 import org.apache.slider.providers.slideram.SliderAMProviderService;
+import org.apache.slider.server.appmaster.actions.ActionHalt;
 import org.apache.slider.server.appmaster.actions.ActionRegisterServiceInstance;
 import org.apache.slider.server.appmaster.actions.EscalateOutstandingRequests;
 import org.apache.slider.server.appmaster.actions.RegisterComponentInstance;
@@ -898,7 +901,8 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
       Configuration providerConf =
         providerService.loadProviderConfigurationInformation(confDir);
 
-      providerService.initializeApplicationConfiguration(instanceDefinition, fs);
+      providerService.initializeApplicationConfiguration(instanceDefinition,
+          fs, null);
 
       providerService.validateApplicationConfiguration(instanceDefinition,
           confDir,
@@ -2066,14 +2070,23 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
 
   @Override //AMRMClientAsync
   public void onError(Throwable e) {
-    //callback says it's time to finish
-    LOG_YARN.error("AMRMClientAsync.onError() received {}", e, e);
-    signalAMComplete(new ActionStopSlider("stop",
-        EXIT_EXCEPTION_THROWN,
-        FinalApplicationStatus.FAILED,
-        "AMRMClientAsync.onError() received " + e));
+    if (e instanceof InvalidResourceRequestException) {
+      // stop the cluster
+      LOG_YARN.error("AMRMClientAsync.onError() received {}", e, e);
+      signalAMComplete(new ActionStopSlider("stop", EXIT_EXCEPTION_THROWN,
+          FinalApplicationStatus.FAILED,
+          SliderUtils.extractFirstLine(e.getLocalizedMessage())));
+    } else if (e instanceof InvalidApplicationMasterRequestException) {
+      // halt the AM
+      LOG_YARN.error("AMRMClientAsync.onError() received {}", e, e);
+      queue(new ActionHalt(EXIT_EXCEPTION_THROWN,
+          SliderUtils.extractFirstLine(e.getLocalizedMessage())));
+    } else {
+      // ignore and log
+      LOG_YARN.info("Ignoring AMRMClientAsync.onError() received {}", e);
+    }
   }
-  
+
 /* =================================================================== */
 /* RMOperationHandlerActions */
 /* =================================================================== */
@@ -2362,13 +2375,13 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
 
   /**
    * Handle any exception in a thread. If the exception provides an exit
-   * code, that is the one that will be used
+   * code, that is the one that will be used.
    * @param thread thread throwing the exception
    * @param exception exception
    */
   public void onExceptionInThread(Thread thread, Throwable exception) {
     log.error("Exception in {}: {}", thread.getName(), exception, exception);
-    
+
     // if there is a teardown in progress, ignore it
     if (amCompletionFlag.get()) {
       log.info("Ignoring exception: shutdown in progress");
@@ -2377,10 +2390,9 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
       if (exception instanceof ExitCodeProvider) {
         exitCode = ((ExitCodeProvider) exception).getExitCode();
       }
-      signalAMComplete(new ActionStopSlider("stop",
-          exitCode,
-          FinalApplicationStatus.FAILED,
-          exception.toString()));
+      signalAMComplete(
+          new ActionStopSlider("stop", exitCode, FinalApplicationStatus.FAILED,
+              SliderUtils.extractFirstLine(exception.getLocalizedMessage())));
     }
   }
 
