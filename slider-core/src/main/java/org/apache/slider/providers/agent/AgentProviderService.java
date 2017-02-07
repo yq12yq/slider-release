@@ -564,7 +564,8 @@ public class AgentProviderService extends AbstractProviderService implements
           buildCommandConfigurations(instanceDefinition.getAppConfOperations(),
               container.getId().toString(), roleName, roleGroup);
       localizeConfigFiles(launcher, roleName, roleGroup, getMetaInfo(roleGroup),
-          configurations, launcher.getEnv(), fileSystem);
+          configurations, launcher.getEnv(), fileSystem,
+          instanceDefinition.getAppConfOperations());
     }
 
     String label = getContainerLabel(container, roleName, roleGroup);
@@ -847,10 +848,15 @@ public class AgentProviderService extends AbstractProviderService implements
     }
   }
 
-  private void createConfigFile(SliderFileSystem fileSystem, File file,
-      ConfigFile configFile, Map<String, String> config)
+  private synchronized void createConfigFile(SliderFileSystem fileSystem,
+      File file, ConfigFile configFile, Map<String, String> config)
       throws IOException {
     ConfigFormat configFormat = ConfigFormat.resolve(configFile.getType());
+    if (file.exists()) {
+      log.info("Skipping writing {} file {} because it already exists",
+          configFormat, file);
+      return;
+    }
     log.info("Writing {} file {}", configFormat, file);
 
     ConfigUtils.prepConfigForTemplateOutputter(configFormat, config,
@@ -870,7 +876,8 @@ public class AgentProviderService extends AbstractProviderService implements
                                      Metainfo metainfo,
                                      Map<String, Map<String, String>> configs,
                                      MapOperations env,
-                                     SliderFileSystem fileSystem)
+                                     SliderFileSystem fileSystem,
+                                     ConfTreeOperations appConf)
       throws IOException {
     for (ConfigFile configFile : metainfo.getComponentConfigFiles(roleGroup)) {
       Map<String, String> config = ConfigUtils.replacePropsInConfig(
@@ -879,21 +886,41 @@ public class AgentProviderService extends AbstractProviderService implements
           configFile.getFileName());
       File localFile = new File(SliderKeys.RESOURCE_DIR);
       if (!localFile.exists()) {
-        localFile.mkdir();
+        if (!localFile.mkdir() && !localFile.exists()) {
+          throw new IOException(RESOURCE_DIR + " could not be created!");
+        }
       }
-      localFile = new File(localFile, new File(fileName).getName());
+
+      boolean perComponent = appConf.getComponentOptBool(roleGroup,
+          "conf." + configFile.getDictionaryName() + PER_COMPONENT, false);
+      boolean perGroup = appConf.getComponentOptBool(roleGroup,
+          "conf." + configFile.getDictionaryName() + PER_GROUP, false);
 
       String folder = null;
-      if ("true".equals(config.get(PER_COMPONENT))) {
+      if (perComponent) {
         folder = roleName;
-      } else if ("true".equals(config.get(PER_GROUP))) {
+      } else if (perGroup) {
         folder = roleGroup;
       }
+      if (folder != null) {
+        localFile = new File(localFile, folder);
+        if (!localFile.exists()) {
+          if (!localFile.mkdir() && !localFile.exists()) {
+            throw new IOException(localFile + " could not be created!");
+          }
+        }
+      }
+      localFile = new File(localFile, new File(fileName).getName());
 
       log.info("Localizing {} configs to config file {} (destination {}) " +
           "based on {} configs", config.size(), localFile, fileName,
           configFile.getDictionaryName());
-      createConfigFile(fileSystem, localFile, configFile, config);
+      if (!localFile.exists()) {
+        createConfigFile(fileSystem, localFile, configFile, config);
+      } else {
+        log.info("Local {} file {} already exists", configFile.getType(),
+            localFile);
+      }
       Path destPath = uploadResource(localFile, fileSystem, folder);
       LocalResource configResource = fileSystem.createAmResource(destPath,
           LocalResourceType.FILE);
@@ -1949,7 +1976,7 @@ public class AgentProviderService extends AbstractProviderService implements
                     // replace host names
                     for (String token : replaceTokens.keySet()) {
                       if (value.contains(token)) {
-                        value = value.replace(token, replaceTokens.get(token));
+                        value = value.replaceAll(Pattern.quote(token), replaceTokens.get(token));
                       }
                     }
                     ExportEntry entry = new ExportEntry();
