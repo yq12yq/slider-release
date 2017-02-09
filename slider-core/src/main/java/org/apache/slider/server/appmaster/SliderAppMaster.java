@@ -1613,7 +1613,7 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
     launchService.stop();
 
     //now release all containers
-    releaseAllContainers();
+    releaseAllContainers(finalMessage);
 
     // When the application completes, it should send a finish application
     // signal to the RM
@@ -1881,7 +1881,7 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
    */
   private void scheduleFailureWindowResets(ConfTree resources) throws
       BadConfigException {
-    ResetFailureWindow reset = new ResetFailureWindow();
+    ResetFailureWindow reset = new ResetFailureWindow(rmOperationHandler);
     ConfTreeOperations ops = new ConfTreeOperations(resources);
     MapOperations globals = ops.getGlobalOptions();
     long seconds = globals.getTimeRange(ResourceKeys.CONTAINER_FAILURE_WINDOW,
@@ -1987,7 +1987,7 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
   /**
    * Shutdown operation: release all containers
    */
-  private void releaseAllContainers() {
+  private void releaseAllContainers(String releaseMessage) {
     if (providerService instanceof AgentProviderService) {
       log.info("Setting stopInitiated flag to true");
       AgentProviderService agentProviderService = (AgentProviderService) providerService;
@@ -2003,7 +2003,8 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
     } catch (InterruptedException e) {
       log.info("Sleep for container release interrupted");
     } finally {
-      List<AbstractRMOperation> operations = appState.releaseAllContainers();
+      List<AbstractRMOperation> operations = appState
+          .releaseAllContainers(releaseMessage);
       providerRMOperationHandler.execute(operations);
       // now apply the operations
       execute(operations);
@@ -2117,6 +2118,12 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
   @Override
   public void cancelSingleRequest(AMRMClient.ContainerRequest request) {
     rmOperationHandler.cancelSingleRequest(request);
+  }
+
+  @Override
+  public void updateBlacklist(List<String> blacklistAdditions,
+      List<String> blacklistRemovals) {
+    rmOperationHandler.updateBlacklist(blacklistAdditions, blacklistRemovals);
   }
 
 /* =================================================================== */
