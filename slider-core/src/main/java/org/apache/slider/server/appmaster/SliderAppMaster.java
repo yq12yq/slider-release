@@ -87,6 +87,7 @@ import org.apache.slider.api.ClusterDescription;
 import org.apache.slider.api.InternalKeys;
 import org.apache.slider.api.ResourceKeys;
 import org.apache.slider.api.RoleKeys;
+import org.apache.slider.api.SliderExitReason;
 import org.apache.slider.api.StatusKeys;
 import org.apache.slider.api.proto.SliderClusterAPI;
 import org.apache.slider.api.types.ApplicationDiagnostics;
@@ -1024,7 +1025,9 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
       log.error("Exception : {}", e, e);
       // call the AM stop command as if it had been queued (but without
       // going via the queue, which may not have started
-      onAMStop(new ActionStopSlider(e));
+      ActionStopSlider stopSlider = new ActionStopSlider(e);
+      stopSlider.setExitReason(SliderExitReason.SLIDER_AM_ERROR);
+      onAMStop(stopSlider);
     }
     //shutdown time
     return finish();
@@ -1624,6 +1627,7 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
     ApplicationDiagnostics appDiagnostics = getApplicationDiagnostics();
     appDiagnostics.setFinalStatus(appStatus);
     appDiagnostics.setFinalMessage(finalMessage);
+    appDiagnostics.setExitReason(stopAction.getExitReason());
     String appMessage = appDiagnostics.toString();
     try {
       log.info("Unregistering AM status={} message={}", appStatus, appMessage);
@@ -1968,7 +1972,9 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
     } catch (TriggerClusterTeardownException e) {
       //App state has decided that it is time to exit
       log.error("Cluster teardown triggered {}", e, e);
-      queue(new ActionStopSlider(e));
+      ActionStopSlider stopSlider = new ActionStopSlider(e);
+      stopSlider.setExitReason(SliderExitReason.SLIDER_AM_ERROR);
+      queue(stopSlider);
     }
   }
 
@@ -2035,10 +2041,10 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
   @Override //AMRMClientAsync
   public void onShutdownRequest() {
     LOG_YARN.info("Shutdown Request received");
-    signalAMComplete(new ActionStopSlider("stop",
-        EXIT_SUCCESS,
-        FinalApplicationStatus.SUCCEEDED,
-        "Shutdown requested from RM"));
+    ActionStopSlider stopSlider = new ActionStopSlider("stop", EXIT_SUCCESS,
+        FinalApplicationStatus.SUCCEEDED, "Shutdown requested from RM");
+    stopSlider.setExitReason(SliderExitReason.YARN_ERROR);
+    signalAMComplete(stopSlider);
   }
 
   /**
@@ -2076,9 +2082,11 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
     if (e instanceof InvalidResourceRequestException) {
       // stop the cluster
       LOG_YARN.error("AMRMClientAsync.onError() received {}", e, e);
-      signalAMComplete(new ActionStopSlider("stop", EXIT_EXCEPTION_THROWN,
-          FinalApplicationStatus.FAILED,
-          SliderUtils.extractFirstLine(e.getLocalizedMessage())));
+      ActionStopSlider stopSlider = new ActionStopSlider("stop",
+          EXIT_EXCEPTION_THROWN, FinalApplicationStatus.FAILED,
+          SliderUtils.extractFirstLine(e.getLocalizedMessage()));
+      stopSlider.setExitReason(SliderExitReason.APP_ERROR);
+      signalAMComplete(stopSlider);
     } else if (e instanceof InvalidApplicationMasterRequestException) {
       // halt the AM
       LOG_YARN.error("AMRMClientAsync.onError() received {}", e, e);
@@ -2172,7 +2180,9 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
       // cluster flex failure: log
       log.error("Failed to flex cluster nodes: {}", e, e);
       // then what? exit
-      queue(new ActionStopSlider(e));
+      ActionStopSlider stopSlider = new ActionStopSlider(e);
+      stopSlider.setExitReason(SliderExitReason.SLIDER_AM_ERROR);
+      queue(stopSlider);
     }
   }
 
@@ -2224,6 +2234,7 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
             mappedProcessExitCode,
             FinalApplicationStatus.FAILED,
             reason);
+        stop.setExitReason(SliderExitReason.YARN_ERROR);
         //this wasn't expected: the process finished early
         spawnedProcessExitedBeforeShutdownTriggered = true;
         log.info(
@@ -2399,9 +2410,11 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
       if (exception instanceof ExitCodeProvider) {
         exitCode = ((ExitCodeProvider) exception).getExitCode();
       }
-      signalAMComplete(
-          new ActionStopSlider("stop", exitCode, FinalApplicationStatus.FAILED,
-              SliderUtils.extractFirstLine(exception.getLocalizedMessage())));
+      ActionStopSlider stopSlider = new ActionStopSlider("stop", exitCode,
+          FinalApplicationStatus.FAILED,
+          SliderUtils.extractFirstLine(exception.getLocalizedMessage()));
+      stopSlider.setExitReason(SliderExitReason.SLIDER_AM_ERROR);
+      signalAMComplete(stopSlider);
     }
   }
 
@@ -2458,6 +2471,7 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
           LauncherExitCodes.EXIT_FALSE,
           FinalApplicationStatus.FAILED,
           E_TRIGGERED_LAUNCH_FAILURE);
+      stop.setExitReason(SliderExitReason.CHAOS_MONKEY);
       queue(stop);
     }
     
