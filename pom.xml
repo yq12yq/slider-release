@@ -1466,21 +1466,21 @@
           <artifactId>databasejarsa</artifactId>
           <version>1.0</version>
           <scope>system</scope>
-          <systemPath>/usr/lib/hdinsight-datalake/azure-data-lake-store-sdk-2.0.4-SNAPSHOT.jar</systemPath>
+          <systemPath>/usr/lib/hdinsight-datalake/azure-data-lake-store-sdk.jar</systemPath>
         </dependency>
         <dependency>
           <groupId>datalakejars</groupId>
           <artifactId>databasejarsb</artifactId>
           <version>1.0</version>
           <scope>system</scope>
-          <systemPath>/usr/lib/hdinsight-datalake/hadoop-azure-datalake-2.0.0-SNAPSHOT.jar</systemPath>
+          <systemPath>/usr/lib/hdinsight-datalake/hadoop-azure-datalake.jar</systemPath>
         </dependency>
         <dependency>
           <groupId>datalakejars</groupId>
           <artifactId>databasejarsc</artifactId>
           <version>1.0</version>
           <scope>system</scope>
-          <systemPath>/usr/lib/hdinsight-datalake/adls2-oauth2-token-provider-1.0.jar</systemPath>
+          <systemPath>/usr/lib/hdinsight-datalake/adls2-oauth2-token-provider.jar</systemPath>
         </dependency>
       </dependencies>
     </profile>
