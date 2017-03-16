@@ -238,6 +238,7 @@
     <!-- override point for ASF staging/snapshot repos -->
     <asf.staging>https://repository.apache.org/content/groups/staging/</asf.staging>
     <asf.snapshots>https://repository.apache.org/content/repositories/snapshots/</asf.snapshots>
+    <adl.sdk.version>2.1.4</adl.sdk.version>
   </properties>
 
 
@@ -627,6 +628,18 @@
       <dependency>
         <groupId>org.apache.hadoop</groupId>
         <artifactId>hadoop-azure</artifactId>
+        <version>${hadoop.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.microsoft.azure</groupId>
+        <artifactId>azure-data-lake-store-sdk</artifactId>
+        <version>${adl.sdk.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.hadoop</groupId>
+        <artifactId>hadoop-azure-datalake</artifactId>
         <version>${hadoop.version}</version>
       </dependency>
 
