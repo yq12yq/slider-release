@@ -27,3 +27,4 @@ Changes only in Hortonworks github and not in slider-0.91.0-incubating.
 
   BUG FIXES (INTERNAL DB)
     SLIDER-37 Update Slider pom to use non-versioned datalake jars given that SLIDER-30 is fixed
+    BUG-77607 Ignore tests that check for null HDP version

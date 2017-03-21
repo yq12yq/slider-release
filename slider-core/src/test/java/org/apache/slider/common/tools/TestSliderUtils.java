@@ -25,6 +25,7 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.api.records.impl.pb.ApplicationReportPBImpl;
 import org.apache.slider.tools.TestUtility;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -138,6 +139,7 @@ public class TestSliderUtils {
   }
 
 
+  @Ignore
   @Test
   public void testGetHdpVersion() {
     String hdpVersion = "2.3.2.0-2766";
@@ -145,6 +147,7 @@ public class TestSliderUtils {
         SliderUtils.getHdpVersion());
   }
 
+  @Ignore
   @Test
   public void testIsHdp() {
     Assert.assertFalse("Should be false", SliderUtils.isHdp());
