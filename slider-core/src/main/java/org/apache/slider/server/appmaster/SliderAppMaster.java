@@ -29,6 +29,7 @@ import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
 import org.apache.hadoop.hdfs.security.token.delegation.DelegationTokenIdentifier;
 import org.apache.hadoop.http.HttpConfig;
@@ -39,6 +40,7 @@ import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.security.token.TokenIdentifier;
+import org.apache.hadoop.security.token.delegation.AbstractDelegationTokenIdentifier;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.service.ServiceOperations;
 import org.apache.hadoop.service.ServiceStateChangeListener;
@@ -189,6 +191,7 @@ import java.nio.ByteBuffer;
 import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -263,9 +266,18 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
   public NMClientAsync nmClientAsync;
 
   /**
-   * Credentials for propagating down to launched containers
+   * Credentials store for the first time AM comes up until it crosses the token
+   * lifetime boundary the first time. After the lifetime boundary is crossed
+   * once, AM relies only on new tokens for itself and all new/replacement
+   * application containers.
    */
-  private Credentials containerCredentials;
+  private Credentials firstAMInstanceContainerCredentials;
+
+  /**
+   * When true it signifies that the token has crossed the max lifetime boundary
+   * at least once, false otherwise.
+   */
+  private boolean hasTheTokenExpiredAtleastOnce = false;
 
   /**
    * Slider IPC: Real service handler
@@ -611,6 +623,12 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
     URI sliderClusterURI = new URI(sliderClusterDir);
     Path clusterDirPath = new Path(sliderClusterURI);
     log.info("Application defined at {}", sliderClusterURI);
+
+    Configuration serviceConf = getConfig();
+
+    // Setup security before creating file-system
+    String keytabLoc = setupSecurity(clustername, serviceConf);
+
     SliderFileSystem fs = getClusterFS();
 
     // build up information about the running application -this
@@ -629,8 +647,6 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
 
     stateForProviders.setApplicationName(clustername);
 
-    Configuration serviceConf = getConfig();
-
     // extend AM configuration with component resource
     MapOperations amConfiguration = resolvedInstance
       .getAppConfOperations().getComponent(COMPONENT_AM);
@@ -646,9 +662,6 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
       }
     }
 
-    securityConfiguration = new SecurityConfiguration(serviceConf, resolvedInstance, clustername);
-    // obtain security state
-    securityEnabled = securityConfiguration.isSecurityEnabled();
     // set the global security flag for the instance definition
     instanceDefinition.getAppConfOperations().set(KEY_SECURITY_ENABLED, securityEnabled);
 
@@ -762,21 +775,6 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
 
 
       log.info("Starting Yarn registry");
-
-      String keytabLoc = null;
-      if (securityEnabled && securityConfiguration.isKeytabProvided()) {
-        keytabLoc = securityConfiguration.getKeytabFile(instanceDefinition)
-            .getAbsolutePath();
-        // perform keytab based login to establish kerberos authenticated
-        // principal.  Can do so now since AM registration with RM above required
-        // tokens associated to principal
-        String principal = securityConfiguration.getPrincipal();
-        File localKeytabFile = securityConfiguration.getKeytabFile(instanceDefinition);
-        // Now log in...
-        login(principal, localKeytabFile);
-        log.info("Using kerberosPrincipal = " + principal + ", keytab = "
-            + keytabLoc);
-      }
       registryOperations =
           startRegistryOperationsService(securityConfiguration.getPrincipal(),
               keytabLoc);
@@ -1034,6 +1032,57 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
     return finish();
   }
 
+  private String setupSecurity(String clustername, Configuration serviceConf)
+      throws SliderException, IOException {
+    securityConfiguration = new SecurityConfiguration(serviceConf, clustername);
+    // obtain security state
+    securityEnabled = SliderUtils.isHadoopClusterSecure(serviceConf);
+
+    String keytabLoc = null;
+    if (securityEnabled && securityConfiguration.isKeytabProvided()) {
+      firstAMInstanceContainerCredentials = new Credentials();
+      Collection<Token<? extends TokenIdentifier>> tokens = UserGroupInformation
+          .getLoginUser().getTokens();
+      for (Token<? extends TokenIdentifier> token : tokens) {
+        // After login, the loginUser is overwritten and hence the tokens are
+        // lost. Store them to be able to add them back later.
+        firstAMInstanceContainerCredentials.addToken(token.getService(), token);
+        if (token.getKind()
+            .equals(DelegationTokenIdentifier.HDFS_DELEGATION_KIND)) {
+          AbstractDelegationTokenIdentifier hdfsTokenID = (AbstractDelegationTokenIdentifier) token
+              .decodeIdentifier();
+          long tokenMaxLifetime = hdfsTokenID.getMaxDate();
+          // 0.9 gives a 10% buffer time to renew the tokens before they expire
+          if (System.currentTimeMillis() >= tokenMaxLifetime * 0.9) {
+            // TODO: Check if the token validity is on
+            hasTheTokenExpiredAtleastOnce = true;
+          }
+        }
+      }
+
+      File localKeytabFile = securityConfiguration.getKeytabFile();
+      keytabLoc = localKeytabFile.getAbsolutePath();
+      // perform keytab based login to establish kerberos authenticated
+      // principal. Can do so now since AM registration with RM above required
+      // tokens associated to principal
+      // TODO: Get the principal name from AM CLI
+      String principal = securityConfiguration.getPrincipal();
+      // Now log in...
+      login(principal, localKeytabFile);
+      log.info(
+          "Using kerberosPrincipal = " + principal + ", keytab = " + keytabLoc);
+
+      // We need the AM RM token in the UGI to be able to talk to RM
+      for (Token<? extends TokenIdentifier> token : firstAMInstanceContainerCredentials
+          .getAllTokens()) {
+        if (token.getKind().equals(AMRMTokenIdentifier.KIND_NAME)) {
+          UserGroupInformation.getCurrentUser().addToken(token);
+        }
+      }
+    }
+    return keytabLoc;
+  }
+
   /**
    * Get the YARN application Attempt report as the logged in user
    * @param yarnClient client to the RM
@@ -1141,20 +1190,19 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
    */
   private void processAMCredentials(SecurityConfiguration securityConfig)
       throws IOException {
-
+    log.info("UGI Credentials: " + CredentialUtils
+        .dumpTokens(firstAMInstanceContainerCredentials, "\n"));
     List<Text> filteredTokens = new ArrayList<>(3);
     filteredTokens.add(AMRMTokenIdentifier.KIND_NAME);
     filteredTokens.add(TimelineDelegationTokenIdentifier.KIND_NAME);
 
     boolean keytabProvided = securityConfig.isKeytabProvided();
-    log.info("Slider AM Security Mode: {}", keytabProvided ? "KEYTAB" : "TOKEN");
-    if (keytabProvided) {
-      filteredTokens.add(DelegationTokenIdentifier.HDFS_DELEGATION_KIND);
-    }
-    containerCredentials = CredentialUtils.filterTokens(
-        UserGroupInformation.getCurrentUser().getCredentials(),
-        filteredTokens);
-    log.info(CredentialUtils.dumpTokens(containerCredentials, "\n"));
+    log.info("Slider AM Security Mode: {}",
+        keytabProvided ? "KEYTAB" : "TOKEN");
+    firstAMInstanceContainerCredentials = CredentialUtils
+        .filterTokens(firstAMInstanceContainerCredentials, filteredTokens);
+    log.info("Container Credentials: " + CredentialUtils
+        .dumpTokens(firstAMInstanceContainerCredentials, "\n"));
   }
 
   /**
@@ -2290,15 +2338,19 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
    * @return a buffer of credentials
    * @throws IOException
    */
-
   private Credentials buildContainerCredentials() throws IOException {
-    Credentials credentials = new Credentials(containerCredentials);
+    Credentials creds = new Credentials();
     if (securityConfiguration.isKeytabProvided()) {
-      CredentialUtils.addSelfRenewableFSDelegationTokens(
-          getClusterFS().getFileSystem(),
-          credentials);
+      // If the token has expired at least once then no need to add the stored
+      // credentials anymore. Add new ones.
+      if (hasTheTokenExpiredAtleastOnce) {
+        CredentialUtils.addSelfRenewableFSDelegationTokens(
+            getClusterFS().getFileSystem(), creds);
+      } else {
+        creds.addAll(firstAMInstanceContainerCredentials);
+      }
     }
-    return credentials;
+    return creds;
   }
 
   @Override //  NMClientAsync.CallbackHandler 

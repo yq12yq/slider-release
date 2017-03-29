@@ -25,7 +25,6 @@ import static org.apache.slider.core.main.LauncherExitCodes.EXIT_UNAUTHORIZED;
 import org.apache.slider.common.SliderKeys;
 import org.apache.slider.common.SliderXmlConfKeys;
 import org.apache.slider.common.tools.SliderUtils;
-import org.apache.slider.core.conf.AggregateConf;
 import org.apache.slider.core.exceptions.SliderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,26 +40,22 @@ public class SecurityConfiguration {
   protected static final Logger log =
       LoggerFactory.getLogger(SecurityConfiguration.class);
   private final Configuration configuration;
-  private final AggregateConf instanceDefinition;
   private String clusterName;
 
   public SecurityConfiguration(Configuration configuration,
-                               AggregateConf instanceDefinition,
                                String clusterName) throws SliderException {
     Preconditions.checkNotNull(configuration);
-    Preconditions.checkNotNull(instanceDefinition);
     Preconditions.checkNotNull(clusterName);
     this.configuration = configuration;
-    this.instanceDefinition = instanceDefinition;
     this.clusterName = clusterName;
     validate();
   }
 
   private void validate() throws SliderException {
     if (isSecurityEnabled()) {
-      String principal = instanceDefinition.getAppConfOperations()
-          .getComponent(SliderKeys.COMPONENT_AM).get(SliderXmlConfKeys.KEY_KEYTAB_PRINCIPAL);
-      if(SliderUtils.isUnset(principal)) {
+      String principal = configuration
+          .get(SliderKeys.DEFINITION_SECURITY_KEYTAB_PRINCIPAL_NAME);
+      if (SliderUtils.isUnset(principal)) {
         // if no login identity is available, fail
         UserGroupInformation loginUser = null;
         try {
@@ -88,17 +83,16 @@ public class SecurityConfiguration {
       }
       // ensure that either local or distributed keytab mechanism is enabled,
       // but not both
-      String keytabFullPath = instanceDefinition.getAppConfOperations()
-          .getComponent(SliderKeys.COMPONENT_AM)
-          .get(SliderXmlConfKeys.KEY_AM_KEYTAB_LOCAL_PATH);
-      String keytabName = instanceDefinition.getAppConfOperations()
-          .getComponent(SliderKeys.COMPONENT_AM)
-          .get(SliderXmlConfKeys.KEY_AM_LOGIN_KEYTAB_NAME);
-      if (SliderUtils.isSet(keytabFullPath) && SliderUtils.isSet(keytabName)) {
+      String keytabLocalPath = configuration
+          .get(SliderKeys.DEFINITION_SECURITY_KEYTAB_LOCAL_PATH);
+      String keytabLocalizedFilename = configuration
+          .get(SliderKeys.DEFINITION_SECURITY_KEYTAB_FILENAME);
+      if (SliderUtils.isSet(keytabLocalPath)
+          && SliderUtils.isSet(keytabLocalizedFilename)) {
         throw new SliderException(EXIT_UNAUTHORIZED,
                                   "Both a keytab on the cluster host (%s) and a"
-                                  + " keytab to be retrieved from HDFS (%s) are"
-                                  + " specified.  Please configure only one keytab"
+                                  + " localized keytab from HDFS (%s) are"
+                                  + " specified. Please configure only one keytab"
                                   + " retrieval mechanism.",
                                   SliderXmlConfKeys.KEY_AM_KEYTAB_LOCAL_PATH,
                                   SliderXmlConfKeys.KEY_AM_LOGIN_KEYTAB_NAME);
@@ -116,11 +110,11 @@ public class SecurityConfiguration {
   }
 
   public String getPrincipal () throws IOException {
-    String principal = instanceDefinition.getAppConfOperations()
-        .getComponent(SliderKeys.COMPONENT_AM).get(SliderXmlConfKeys.KEY_KEYTAB_PRINCIPAL);
+    String principal = configuration
+        .get(SliderKeys.DEFINITION_SECURITY_KEYTAB_PRINCIPAL_NAME);
     if (SliderUtils.isUnset(principal)) {
       principal = UserGroupInformation.getLoginUser().getShortUserName();
-      log.info("No principal set in the slider configuration.  Will use AM login"
+      log.info("No principal set in the slider configuration. Will use AM login"
                + " identity {} to attempt keytab-based login", principal);
     }
 
@@ -128,35 +122,30 @@ public class SecurityConfiguration {
   }
 
   public boolean isKeytabProvided() {
-    String keytabLocalPath = instanceDefinition.getAppConfOperations()
-        .getComponent(SliderKeys.COMPONENT_AM)
-        .get(SliderXmlConfKeys.KEY_AM_KEYTAB_LOCAL_PATH);
-    String keytabName = instanceDefinition.getAppConfOperations()
-        .getComponent(SliderKeys.COMPONENT_AM)
-        .get(SliderXmlConfKeys.KEY_AM_LOGIN_KEYTAB_NAME);
+    String keytabLocalPath = configuration
+        .get(SliderKeys.DEFINITION_SECURITY_KEYTAB_LOCAL_PATH);
+    String keytabFilename = configuration
+        .get(SliderKeys.DEFINITION_SECURITY_KEYTAB_FILENAME);
     return StringUtils.isNotBlank(keytabLocalPath)
-        || StringUtils.isNotBlank(keytabName);
+        || StringUtils.isNotBlank(keytabFilename);
   }
 
-  public File getKeytabFile(AggregateConf instanceDefinition)
+  public File getKeytabFile()
       throws SliderException, IOException {
-    String keytabFullPath = instanceDefinition.getAppConfOperations()
-        .getComponent(SliderKeys.COMPONENT_AM)
-        .get(SliderXmlConfKeys.KEY_AM_KEYTAB_LOCAL_PATH);
+    String keytabLocalPath = configuration
+        .get(SliderKeys.DEFINITION_SECURITY_KEYTAB_LOCAL_PATH);
+
     File localKeytabFile;
-    if (SliderUtils.isUnset(keytabFullPath)) {
-      // get the keytab
-      String keytabName = instanceDefinition.getAppConfOperations()
-          .getComponent(SliderKeys.COMPONENT_AM).
-              get(SliderXmlConfKeys.KEY_AM_LOGIN_KEYTAB_NAME);
-      log.info("No host keytab file path specified. Will attempt to retrieve"
-               + " keytab file {} as a local resource for the container",
-               keytabName);
-      // download keytab to local, protected directory
-      localKeytabFile = new File(SliderKeys.KEYTAB_DIR, keytabName);
+    if (SliderUtils.isUnset(keytabLocalPath)) {
+      // create a path to the localized HDFS keytab file
+      String keytabFilename = configuration
+          .get(SliderKeys.DEFINITION_SECURITY_KEYTAB_FILENAME);
+      log.info("No host keytab file path specified. Will use the localized"
+          + " HDFS keytab file {} for the container", keytabFilename);
+      localKeytabFile = new File(SliderKeys.KEYTAB_DIR, keytabFilename);
     } else {
-      log.info("Using host keytab file {} for login", keytabFullPath);
-      localKeytabFile = new File(keytabFullPath);
+      log.info("Using host keytab file {} for login", keytabLocalPath);
+      localKeytabFile = new File(keytabLocalPath);
     }
     return localKeytabFile;
   }

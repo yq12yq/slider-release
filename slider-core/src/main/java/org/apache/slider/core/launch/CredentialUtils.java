@@ -303,9 +303,9 @@ public final class CredentialUtils {
         result.getAllTokens().iterator();
     while (iter.hasNext()) {
       Token<? extends TokenIdentifier> token = iter.next();
-      LOG.debug("Token {}", token.getKind());
+      LOG.info("Token {}", token.getKind());
       if (filter.contains(token.getKind())) {
-        LOG.debug("Filtering token {}", token.getKind());
+        LOG.info("Filtering token {}", token.getKind());
         iter.remove();
       }
     }

@@ -79,6 +79,7 @@ import org.apache.slider.client.ipc.SliderClusterOperations;
 import org.apache.slider.common.Constants;
 import org.apache.slider.common.SliderExitCodes;
 import org.apache.slider.common.SliderKeys;
+import org.apache.slider.common.SliderXmlConfKeys;
 import org.apache.slider.common.params.AbstractActionArgs;
 import org.apache.slider.common.params.AbstractClusterBuildingActionArgs;
 import org.apache.slider.common.params.ActionAMSuicideArgs;
@@ -2334,6 +2335,8 @@ public class SliderClient extends AbstractSliderLaunchedService implements RunSe
       // if the cluster is secure, make sure that
       // the relevant security settings go over
       commandLine.addConfOption(config, DFS_NAMENODE_KERBEROS_PRINCIPAL_KEY);
+      // Add keytab info to AM command line for secure clusters
+      addKeytabDefinitions(commandLine, appOperations, config);
     }
 
     // copy over any/all YARN RM client values, in case the server-side XML conf file
@@ -2374,6 +2377,27 @@ public class SliderClient extends AbstractSliderLaunchedService implements RunSe
       amLauncher.setQueue(amQueue);
     }
     return amLauncher;
+  }
+
+  /**
+   * Add the keytab principal name, the host-local keytab absolute path, and the
+   * HDFS keytab name as AM command line definitions. These are for the AM to
+   * use when it comes up. If the HDFS keytab name is set in app config, then
+   * the client adds it as a local resource as well for the AM container.
+   */
+  protected void addKeytabDefinitions(JavaCommandLineBuilder commandLine,
+      ConfTreeOperations appOperations, Configuration config) {
+    MapOperations amConf = appOperations
+        .getOrAddComponent(SliderKeys.COMPONENT_AM);
+    if (isHadoopClusterSecure(config)) {
+      commandLine.defineIfSet(SliderKeys.DEFINITION_SECURITY_KEYTAB_FILENAME,
+          amConf.get(SliderXmlConfKeys.KEY_AM_LOGIN_KEYTAB_NAME));
+      commandLine.defineIfSet(SliderKeys.DEFINITION_SECURITY_KEYTAB_LOCAL_PATH,
+          amConf.get(SliderXmlConfKeys.KEY_AM_KEYTAB_LOCAL_PATH));
+      commandLine.defineIfSet(
+          SliderKeys.DEFINITION_SECURITY_KEYTAB_PRINCIPAL_NAME,
+          amConf.get(SliderXmlConfKeys.KEY_KEYTAB_PRINCIPAL));
+    }
   }
 
   /**

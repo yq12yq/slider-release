@@ -840,7 +840,7 @@ public class AgentProviderService extends AbstractProviderService implements
         }
       }
       if (!serviceKeytabsDeployed) {
-        log.warn("No service keytabs for the application have been localized.  "
+        log.info("No service keytabs for the application have been localized.  "
                  + "If the application requires keytabs for secure operation, "
                  + "please ensure that the required keytabs have been uploaded "
                  + "to the folder {}", keytabDirPath);

@@ -288,4 +288,13 @@ public interface SliderKeys extends SliderXmlConfKeys {
 
   String SLIDER_CLASSPATH_EXTRA = "SLIDER_CLASSPATH_EXTRA";
   String YARN_CONTAINER_PATH = "/node/container/";
+
+  /**
+   * Slider security specific keys used by the client to set host-local keytab
+   * location, the HDFS keytab filename and principal name in AM launch command
+   * line.
+   */
+  String DEFINITION_SECURITY_KEYTAB_LOCAL_PATH = SliderXmlConfKeys.KEY_AM_KEYTAB_LOCAL_PATH;
+  String DEFINITION_SECURITY_KEYTAB_FILENAME = SliderXmlConfKeys.KEY_AM_LOGIN_KEYTAB_NAME;
+  String DEFINITION_SECURITY_KEYTAB_PRINCIPAL_NAME = SliderXmlConfKeys.KEY_KEYTAB_PRINCIPAL;
 }
