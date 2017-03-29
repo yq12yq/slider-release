@@ -11,4 +11,5 @@ Changes only in Hortonworks github and not in slider-0.92.0-incubating.
 
   BUG FIXES (INTERNAL-DB / HWXMONARCH / ETC.)
     SLIDER-37 Update Slider pom to use non-versioned datalake jars given that SLIDER-30 is fixed
+    BUG-77128 Incorrect handling of keytabs and delegation tokens causes log-aggregation failures in secure clusters
     BUG-77607 Ignore tests that check for null HDP version
