@@ -19,6 +19,8 @@
 package org.apache.slider.core.launch;
 
 import com.google.common.base.Preconditions;
+
+import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.DataOutputBuffer;
@@ -313,6 +315,9 @@ public final class CredentialUtils {
   }
 
   public static String dumpTokens(Credentials credentials, String separator) {
+    if (credentials == null) {
+      return StringUtils.EMPTY;
+    }
     ArrayList<Token<? extends TokenIdentifier>> sorted =
         new ArrayList<>(credentials.getAllTokens());
     Collections.sort(sorted, new TokenComparator());

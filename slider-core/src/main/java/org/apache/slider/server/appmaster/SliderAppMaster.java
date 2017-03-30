@@ -1190,8 +1190,8 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
    */
   private void processAMCredentials(SecurityConfiguration securityConfig)
       throws IOException {
-    log.info("UGI Credentials: " + CredentialUtils
-        .dumpTokens(firstAMInstanceContainerCredentials, "\n"));
+    log.info("UGI Credentials: {}",
+        CredentialUtils.dumpTokens(firstAMInstanceContainerCredentials, "\n"));
     List<Text> filteredTokens = new ArrayList<>(3);
     filteredTokens.add(AMRMTokenIdentifier.KIND_NAME);
     filteredTokens.add(TimelineDelegationTokenIdentifier.KIND_NAME);
@@ -1201,8 +1201,8 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
         keytabProvided ? "KEYTAB" : "TOKEN");
     firstAMInstanceContainerCredentials = CredentialUtils
         .filterTokens(firstAMInstanceContainerCredentials, filteredTokens);
-    log.info("Container Credentials: " + CredentialUtils
-        .dumpTokens(firstAMInstanceContainerCredentials, "\n"));
+    log.info("Final AM Container Credentials: {}",
+        CredentialUtils.dumpTokens(firstAMInstanceContainerCredentials, "\n"));
   }
 
   /**
