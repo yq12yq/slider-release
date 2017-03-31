@@ -29,7 +29,6 @@ import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsAction;
 import org.apache.hadoop.fs.permission.FsPermission;
-import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.HdfsConfiguration;
 import org.apache.hadoop.hdfs.security.token.delegation.DelegationTokenIdentifier;
 import org.apache.hadoop.http.HttpConfig;
@@ -858,11 +857,6 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
         //tell the server what the ACLs are
         rpcService.getServer().refreshServiceAcl(serviceConf,
             new SliderAMPolicyProvider());
-        if (securityConfiguration.isKeytabProvided()) {
-          // obtain new FS reference that should be kerberos based and different
-          // than the previously cached reference
-          fs = new SliderFileSystem(serviceConf);
-        }
       }
 
       // YARN client.
@@ -1184,7 +1178,6 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
    * Process the initial user to obtain the set of user
    * supplied credentials (tokens were passed in by client).
    * Removes the AM/RM token.
-   * If a keytab has been provided, also strip the HDFS delegation token.
    * @param securityConfig slider security config
    * @throws IOException
    */
@@ -1201,7 +1194,7 @@ public class SliderAppMaster extends AbstractSliderLaunchedService
         keytabProvided ? "KEYTAB" : "TOKEN");
     firstAMInstanceContainerCredentials = CredentialUtils
         .filterTokens(firstAMInstanceContainerCredentials, filteredTokens);
-    log.info("Final AM Container Credentials: {}",
+    log.info("Filtered AM Container Credentials: {}",
         CredentialUtils.dumpTokens(firstAMInstanceContainerCredentials, "\n"));
   }
 

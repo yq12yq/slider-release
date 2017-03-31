@@ -300,6 +300,9 @@ public final class CredentialUtils {
    */
   public static Credentials filterTokens(Credentials credentials,
       List<Text> filter) {
+    if (credentials == null) {
+      return null;
+    }
     Credentials result = new Credentials(credentials);
     Iterator<Token<? extends TokenIdentifier>> iter =
         result.getAllTokens().iterator();
