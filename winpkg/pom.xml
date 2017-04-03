@@ -22,7 +22,7 @@
     <parent>
    	<groupId>org.apache.slider</groupId>
     	<artifactId>slider</artifactId>
-    	<version>0.91.0.2.6.0.2-SNAPSHOT</version>
+    	<version>0.92.0.2.6.0.3-8</version>
         <relativePath>..</relativePath>
     </parent>  
     <groupId>org.apache.slider</groupId>
