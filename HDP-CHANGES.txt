@@ -1,6 +1,6 @@
 Changes only in Hortonworks github and not in slider-0.92.0-incubating.
 
-  INCOMPATIBLE CHANGES
+  INCOMPATIBLE CHANGES:
 
   NEW FEATURES
 
