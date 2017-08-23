@@ -9,6 +9,7 @@ Changes only in Hortonworks github and not in slider-0.92.0-incubating.
   BUG FIXES (APACHE)
     SLIDER-1220 Fix funtest failures when sasl security is configured for registry
     SLIDER-1233 Lost nodes should not contribute to container failures
+    SLIDER-1234 Slider JsonSerDeser can use readFully instead of read to avoid errors of type "Read finished prematurely".
 
   BUG FIXES (INTERNAL-DB / HWXMONARCH / ETC.)
     SLIDER-37 Update Slider pom to use non-versioned datalake jars given that SLIDER-30 is fixed
