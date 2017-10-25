@@ -3,14 +3,30 @@ Changes only in Hortonworks github and not in slider-0.92.0-incubating.
   INCOMPATIBLE CHANGES:
 
   NEW FEATURES
+    SLIDER-1246 Application health should not be affected by faulty nodes (health monitor based on percent threshold)
+    SLIDER-1250 Tests for Health Threshold Monitoring Feature (SLIDER-1246)
 
   IMPROVEMENTS
 
   BUG FIXES (APACHE)
+    SLIDER-1212 testAgentEcho UT fails intermittently - increase timeout for waitForRoleCount
     SLIDER-1220 Fix funtest failures when sasl security is configured for registry
     SLIDER-1233 Lost nodes should not contribute to container failures
+    SLIDER-1234 JsonSerDeser should use readFully instead of read
+    SLIDER-1236 Unnecessary 10 second sleep before installation
+    SLIDER-1237 Remove usages of printStackTrace
+    SLIDER-1238 Remove unused private method in AMWebClient
+    SLIDER-1242 Review uses of double-checked locking
+    SLIDER-1242 Review uses of double-checked locking, part 2
+    SLIDER-1243 Enable XML validation in ConfigHelper
+    SLIDER-1244 Stop logging openssl commands on exception
+    SLIDER-1245 Clean up AgentResource
+    SLIDER-1247 Unreleased resource streams
+    SLIDER-1248 Insecure random number generator
+    SLIDER-1251 AASleepIT test fails to reach expected count
 
   BUG FIXES (INTERNAL-DB / HWXMONARCH / ETC.)
     SLIDER-37 Update Slider pom to use non-versioned datalake jars given that SLIDER-30 is fixed
     BUG-77128 Incorrect handling of keytabs and delegation tokens causes log-aggregation failures in secure clusters
     BUG-77607 Ignore tests that check for null HDP version
+    BUG-78364 Unable to get cluster description from slider - NPE in CredentialUtils.dumpTokens
