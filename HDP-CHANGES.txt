@@ -30,3 +30,4 @@ Changes only in Hortonworks github and not in slider-0.92.0-incubating.
     BUG-77128 Incorrect handling of keytabs and delegation tokens causes log-aggregation failures in secure clusters
     BUG-77607 Ignore tests that check for null HDP version
     BUG-78364 Unable to get cluster description from slider - NPE in CredentialUtils.dumpTokens
+    BUG-95260 SLIDER-1252 Slider agent fails with SSL validation errors with python 2.7.5-58
