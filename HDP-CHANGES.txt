@@ -27,6 +27,7 @@ Changes only in Hortonworks github and not in slider-0.92.0-incubating.
     SLIDER-1252 Slider agent fails with SSL validation errors with python 2.7.5-58
     SLIDER-1261 CSR creation fails for long hostnames greater than 64 chars
     SLIDER-1262 Add hadoop conf dir to classpath for funtests
+    SLIDER-1259 Slider does not work in multi homed environments.
 
   BUG FIXES (INTERNAL-DB / HWXMONARCH / ETC.)
     SLIDER-37 Update Slider pom to use non-versioned datalake jars given that SLIDER-30 is fixed
