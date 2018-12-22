@@ -23,7 +23,7 @@
   <parent>
     <groupId>org.apache.slider</groupId>
     <artifactId>slider</artifactId>
-    <version>0.92.0.2.6.3.0-SNAPSHOT</version>
+    <version>0.92.0.2.6.4.117-1</version>
   </parent>
 
   <build>
